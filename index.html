@@ -290,27 +290,184 @@
 
 <script>
 const MUSCLE_COLORS = {
-  peito:'var(--peito)', costas:'var(--costas)', perna:'var(--perna)',
-  ombro:'var(--ombro)', braco:'var(--braco)', core:'var(--core)', outro:'var(--outro)'
+  // Peito
+  peito: 'var(--peito)',
+  peito_superior: 'var(--peito)',
+  peito_inferior: 'var(--peito)',
+
+  // Costas
+  latissimo: 'var(--costas)',
+  costas_media: 'var(--costas)',
+  lombar: 'var(--costas)',
+
+  // Ombros
+  ombro_anterior: 'var(--ombro)',
+  ombro_lateral: 'var(--ombro)',
+  ombro_posterior: 'var(--ombro)',
+
+  // Braços
+  biceps: 'var(--braco)',
+  braquial: 'var(--braco)',
+  triceps: 'var(--braco)',
+
+  // Pernas
+  quadriceps: 'var(--perna)',
+  posterior_coxa: 'var(--perna)',
+  gluteos: 'var(--perna)',
+  gluteo_medio: 'var(--perna)',
+  panturrilha: 'var(--perna)',
+
+  // Core
+  reto_abdominal: 'var(--core)',
+  obliquos: 'var(--core)',
+  core: 'var(--core)',
+
+  outro: 'var(--outro)'
 };
+
 const MUSCLE_LABELS = {
-  peito:'Peito', costas:'Costas', perna:'Perna', ombro:'Ombro', braco:'Braço', core:'Core', outro:'Outro'
+  // Peito
+  peito: 'Peito',
+  peito_superior: 'Peito Superior',
+  peito_inferior: 'Peito Inferior',
+
+  // Costas
+  latissimo: 'Latíssimo',
+  costas_media: 'Costas Média',
+  lombar: 'Lombar',
+
+  // Ombros
+  ombro_anterior: 'Deltoide Anterior',
+  ombro_lateral: 'Deltoide Lateral',
+  ombro_posterior: 'Deltoide Posterior',
+
+  // Braços
+  biceps: 'Bíceps',
+  braquial: 'Braquial',
+  triceps: 'Tríceps',
+
+  // Pernas
+  quadriceps: 'Quadríceps',
+  posterior_coxa: 'Posterior de Coxa',
+  gluteos: 'Glúteos',
+  gluteo_medio: 'Glúteo Médio',
+  panturrilha: 'Panturrilha',
+
+  // Core
+  reto_abdominal: 'Reto Abdominal',
+  obliquos: 'Oblíquos',
+  core: 'Core',
+
+  outro: 'Outro'
 };
 
 // mapa exercicio -> grupamento (chaves em minusculo, sem acento pra facilitar match)
 const EXERCISE_DB = {
-  'Supino Reto':'peito','Supino Inclinado':'peito','Supino Declinado':'peito',
-  'Crucifixo':'peito','Crossover':'peito','Peck Deck':'peito','Flexao':'peito','Flexao De Braco':'peito',
-  'Puxada':'costas','Puxada Frente':'costas','Puxada Alta':'costas','Pulldown':'costas',
-  'Remada Baixa':'costas','Remada Curvada':'costas','Remada Cavalinho':'costas','Remada Unilateral':'costas',
-  'Barra Fixa':'costas','Levantamento Terra':'costas',
-  'Agachamento':'perna','Agachamento Livre':'perna','Leg Press':'perna','Cadeira Extensora':'perna',
-  'Mesa Flexora':'perna','Cadeira Flexora':'perna','Panturrilha':'perna','Avanco':'perna','Afundo':'perna','Stiff':'perna',
-  'Desenvolvimento':'ombro','Desenvolvimento Militar':'ombro','Elevacao Lateral':'ombro',
-  'Elevacao Frontal':'ombro','Remada Alta':'ombro','Arnold Press':'ombro',
-  'Rosca Direta':'braco','Rosca Alternada':'braco','Rosca Martelo':'braco','Rosca Scott':'braco',
-  'Triceps Pulley':'braco','Triceps Testa':'braco','Triceps Corda':'braco','Triceps Frances':'braco',
-  'Abdominal':'core','Prancha':'core','Abdominal Supra':'core','Elevacao De Pernas':'core','Abdominal Infra':'core'
+  // ======================
+  // PEITO
+  // ======================
+  'Supino Reto': 'peito',
+  'Supino Inclinado': 'peito_superior',
+  'Supino Declinado': 'peito_inferior',
+  'Crucifixo': 'peito',
+  'Crucifixo Inclinado': 'peito_superior',
+  'Crucifixo Declinado': 'peito_inferior',
+  'Crossover': 'peito',
+  'Crossover Alto': 'peito_inferior',
+  'Crossover Baixo': 'peito_superior',
+  'Peck Deck': 'peito',
+  'Flexao': 'peito',
+  'Flexao De Braco': 'peito',
+
+  // ======================
+  // COSTAS
+  // ======================
+  'Puxada': 'latissimo',
+  'Puxada Frente': 'latissimo',
+  'Puxada Alta': 'latissimo',
+  'Pulldown': 'latissimo',
+  'Barra Fixa': 'latissimo',
+  'Remada Baixa': 'costas_media',
+  'Remada Curvada': 'costas_media',
+  'Remada Cavalinho': 'costas_media',
+  'Remada Unilateral': 'costas_media',
+  'Levantamento Terra': 'lombar',
+
+  // ======================
+  // OMBROS
+  // ======================
+  'Desenvolvimento': 'ombro_anterior',
+  'Desenvolvimento Militar': 'ombro_anterior',
+  'Arnold Press': 'ombro_anterior',
+  'Elevacao Frontal': 'ombro_anterior',
+  'Elevacao Lateral': 'ombro_lateral',
+  'Remada Alta': 'ombro_lateral',
+
+  // ======================
+  // BÍCEPS
+  // ======================
+  'Rosca Direta': 'biceps',
+  'Rosca Alternada': 'biceps',
+  'Rosca Scott': 'biceps',
+  'Rosca Concentrada': 'biceps',
+  'Rosca Martelo': 'braquial',
+
+  // ======================
+  // TRÍCEPS
+  // ======================
+  'Triceps Pulley': 'triceps',
+  'Triceps Testa': 'triceps',
+  'Triceps Corda': 'triceps',
+  'Triceps Frances': 'triceps',
+  'Mergulho': 'triceps',
+
+  // ======================
+  // QUADRÍCEPS
+  // ======================
+  'Agachamento': 'quadriceps',
+  'Agachamento Livre': 'quadriceps',
+  'Agachamento Frontal': 'quadriceps',
+  'Hack Squat': 'quadriceps',
+  'Leg Press': 'quadriceps',
+  'Cadeira Extensora': 'quadriceps',
+  'Passada': 'quadriceps',
+
+  // ======================
+  // POSTERIOR DE COXA
+  // ======================
+  'Mesa Flexora': 'posterior_coxa',
+  'Cadeira Flexora': 'posterior_coxa',
+  'Stiff': 'posterior_coxa',
+  'Levantamento Terra Romeno': 'posterior_coxa',
+  'Good Morning': 'posterior_coxa',
+
+  // ======================
+  // GLÚTEOS
+  // ======================
+  'Afundo': 'gluteos',
+  'Avanco': 'gluteos',
+  'Hip Thrust': 'gluteos',
+  'Glute Bridge': 'gluteos',
+  'Abducao': 'gluteo_medio',
+  'Coice': 'gluteos',
+
+  // ======================
+  // PANTURRILHAS
+  // ======================
+  'Panturrilha': 'panturrilha',
+  'Panturrilha Em Pe': 'panturrilha',
+  'Panturrilha Sentado': 'panturrilha',
+
+  // ======================
+  // CORE
+  // ======================
+  'Abdominal': 'reto_abdominal',
+  'Abdominal Supra': 'reto_abdominal',
+  'Abdominal Infra': 'reto_abdominal',
+  'Elevacao De Pernas': 'reto_abdominal',
+  'Prancha': 'core',
+  'Prancha Lateral': 'obliquos',
+  'Wood Chop': 'obliquos'
 };
 
 const EXERCISE_DB_NORMALIZED = Object.fromEntries(
