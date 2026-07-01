@@ -99,7 +99,7 @@
     border:1px solid var(--border);
     border-radius:18px;
     padding:14px;
-    margin-bottom:0;
+    margin-bottom:10px;
     box-shadow:0 6px 20px rgba(0,0,0,.16);
   }
   label{ display:block; font-size:11px; color:var(--text-muted); margin-bottom:6px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
@@ -125,6 +125,33 @@
     margin-top:8px;
   }
   .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+  .combo-wrap{ position:relative; }
+  .combo-suggestions{
+    position:absolute;
+    top:calc(100% + 4px);
+    left:0;
+    right:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow:0 10px 24px rgba(0,0,0,.24);
+    z-index:12;
+    display:none;
+    max-height:220px;
+    overflow:auto;
+  }
+  .combo-option{
+    width:100%;
+    border:0;
+    background:transparent;
+    color:var(--text);
+    text-align:left;
+    padding:10px 12px;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .combo-option:hover{ background:var(--surface-alt); }
 
   .btn{
     width:100%; min-height:48px; padding:13px 14px; border-radius:14px; border:none;
@@ -211,30 +238,34 @@ const MUSCLE_LABELS = {
 
 // mapa exercicio -> grupamento (chaves em minusculo, sem acento pra facilitar match)
 const EXERCISE_DB = {
-  'supino reto':'peito','supino inclinado':'peito','supino declinado':'peito',
-  'crucifixo':'peito','crossover':'peito','peck deck':'peito','flexao':'peito','flexao de braco':'peito',
-  'puxada':'costas','puxada frente':'costas','puxada alta':'costas','pulldown':'costas',
-  'remada baixa':'costas','remada curvada':'costas','remada cavalinho':'costas','remada unilateral':'costas',
-  'barra fixa':'costas','levantamento terra':'costas',
-  'agachamento':'perna','agachamento livre':'perna','leg press':'perna','cadeira extensora':'perna',
-  'mesa flexora':'perna','cadeira flexora':'perna','panturrilha':'perna','avanco':'perna','afundo':'perna','stiff':'perna',
-  'desenvolvimento':'ombro','desenvolvimento militar':'ombro','elevacao lateral':'ombro',
-  'elevacao frontal':'ombro','remada alta':'ombro','arnold press':'ombro',
-  'rosca direta':'braco','rosca alternada':'braco','rosca martelo':'braco','rosca scott':'braco',
-  'triceps pulley':'braco','triceps testa':'braco','triceps corda':'braco','triceps frances':'braco',
-  'abdominal':'core','prancha':'core','abdominal supra':'core','elevacao de pernas':'core','abdominal infra':'core'
+  'Supino Reto':'peito','Supino Inclinado':'peito','Supino Declinado':'peito',
+  'Crucifixo':'peito','Crossover':'peito','Peck Deck':'peito','Flexao':'peito','Flexao De Braco':'peito',
+  'Puxada':'costas','Puxada Frente':'costas','Puxada Alta':'costas','Pulldown':'costas',
+  'Remada Baixa':'costas','Remada Curvada':'costas','Remada Cavalinho':'costas','Remada Unilateral':'costas',
+  'Barra Fixa':'costas','Levantamento Terra':'costas',
+  'Agachamento':'perna','Agachamento Livre':'perna','Leg Press':'perna','Cadeira Extensora':'perna',
+  'Mesa Flexora':'perna','Cadeira Flexora':'perna','Panturrilha':'perna','Avanco':'perna','Afundo':'perna','Stiff':'perna',
+  'Desenvolvimento':'ombro','Desenvolvimento Militar':'ombro','Elevacao Lateral':'ombro',
+  'Elevacao Frontal':'ombro','Remada Alta':'ombro','Arnold Press':'ombro',
+  'Rosca Direta':'braco','Rosca Alternada':'braco','Rosca Martelo':'braco','Rosca Scott':'braco',
+  'Triceps Pulley':'braco','Triceps Testa':'braco','Triceps Corda':'braco','Triceps Frances':'braco',
+  'Abdominal':'core','Prancha':'core','Abdominal Supra':'core','Elevacao De Pernas':'core','Abdominal Infra':'core'
 };
 
+const EXERCISE_DB_NORMALIZED = Object.fromEntries(
+  Object.entries(EXERCISE_DB).map(([name, group]) => [normalize(name), group])
+);
+
 function normalize(s){
-  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 }
 function detectGroup(name){
   const n = normalize(name);
   if(!n) return null;
-  if(EXERCISE_DB[n]) return EXERCISE_DB[n];
+  if(EXERCISE_DB_NORMALIZED[n]) return EXERCISE_DB_NORMALIZED[n];
   let best=null, bestLen=0;
-  for(const key in EXERCISE_DB){
-    if(n.includes(key) && key.length>bestLen){ best=EXERCISE_DB[key]; bestLen=key.length; }
+  for(const key in EXERCISE_DB_NORMALIZED){
+    if(n.includes(key) && key.length>bestLen){ best=EXERCISE_DB_NORMALIZED[key]; bestLen=key.length; }
   }
   return best;
 }
@@ -308,10 +339,10 @@ function renderRegistrar(){
     </div>
     <div class="card">
       <label>Exercício</label>
-      <input list="ex-list" id="ex-name" placeholder="ex: Supino inclinado" value="${draft.exerciseName||''}" oninput="onExerciseInput()">
-      <datalist id="ex-list">
-        ${Object.keys(EXERCISE_DB).map(k=>`<option value="${k}">`).join('')}
-      </datalist>
+      <div class="combo-wrap">
+        <input type="text" id="ex-name" placeholder="ex: Supino inclinado" autocomplete="off" value="${draft.exerciseName||''}" oninput="onExerciseInput()" onfocus="renderExerciseSuggestions()" onblur="setTimeout(hideExerciseSuggestions, 120)">
+        <div class="combo-suggestions" id="ex-suggestions"></div>
+      </div>
       <div id="group-area"></div>
     </div>
 
@@ -353,11 +384,51 @@ function renderRegistrar(){
 
 function onDraftDateChange(v){ draft.date = v; saveDraft(); }
 
+function renderExerciseSuggestions(){
+  const input = document.getElementById('ex-name');
+  const box = document.getElementById('ex-suggestions');
+  if(!input || !box) return;
+
+  const query = normalize(input.value);
+  const matches = Object.keys(EXERCISE_DB)
+    .filter(name => !query || normalize(name).includes(query))
+    .slice(0, 8);
+
+  if(!matches.length){
+    box.innerHTML = '';
+    box.style.display = 'none';
+    return;
+  }
+
+  box.innerHTML = matches.map(name => `
+    <button type="button" class="combo-option" data-value="${name}" onclick="selectExercise(this.getAttribute('data-value'))">${name}</button>
+  `).join('');
+  box.style.display = 'block';
+}
+
+function hideExerciseSuggestions(){
+  const box = document.getElementById('ex-suggestions');
+  if(box) box.style.display = 'none';
+}
+
+function selectExercise(value){
+  const input = document.getElementById('ex-name');
+  if(!input) return;
+  input.value = value;
+  draft.exerciseName = value;
+  const detected = detectGroup(draft.exerciseName);
+  if(detected) draft.manualGroup = null;
+  renderGroupArea(detected || draft.manualGroup);
+  hideExerciseSuggestions();
+  saveDraft();
+}
+
 function onExerciseInput(){
   draft.exerciseName = document.getElementById('ex-name').value;
   const detected = detectGroup(draft.exerciseName);
   if(detected) draft.manualGroup = null;
   renderGroupArea(detected || draft.manualGroup);
+  renderExerciseSuggestions();
   saveDraft();
 }
 
