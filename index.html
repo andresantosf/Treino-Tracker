@@ -158,16 +158,21 @@
     cursor:pointer;
   }
   input[type="date"] {
-  /* Forces Safari to respect custom sizing layout rules */
-    -webkit-appearance: none; 
-    appearance: none;
-    
-    /* Standardizes width behavior */
-    display: inline-block; 
-    width: 100%; 
-    box-sizing: border-box;
-  }
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-block;
+  height: 2.5rem; /* Or your preferred height */
+  width: 100%;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
 
+/* Fixes internal container misalignment in WebKit/Safari */
+input[type="date"]::-webkit-datetime-edit {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+}
   .combo-option:hover{ background:var(--surface-alt); }
 
   .btn{
