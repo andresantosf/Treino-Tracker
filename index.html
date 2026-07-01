@@ -263,11 +263,11 @@
   .share-stat{ background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1); border-radius:22px; padding:16px 12px; text-align:center; }
   .share-stat .num{ font-size:24px; font-weight:800; color:var(--accent); }
   .share-stat .lbl{ font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px; margin-top:6px; }
-  .share-badges{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
-  .share-badge{ min-width:90px; flex:1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:22px; padding:14px 10px; text-align:center; }
-  .share-badge .badge-icon{ width:34px; height:34px; border-radius:16px; margin:0 auto 10px; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; color:var(--text); font-size:14px; }
-  .share-badge .badge-label{ font-size:13px; color:var(--text); font-weight:700; }
-  .share-placeholder{ min-height:92px; border-radius:22px; background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:13px; }
+  .share-badges{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .share-badge{ display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:10px 14px; font-size:13px; font-weight:700; color:var(--text); }
+  .share-badge .badge-icon{ width:24px; height:24px; border-radius:999px; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; color:var(--text); font-size:12px; }
+  .share-badge .badge-label{ font-size:13px; }
+  .share-placeholder{ min-height:48px; border-radius:999px; background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:13px; padding:10px 16px; }
 
   @media (max-width:480px){
     #app{ padding:max(14px, env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)); }
@@ -993,53 +993,60 @@ function downloadShareImage(){
   ctx.fillRoundRect(padding - 16, 40, canvas.width - padding*2 + 32, 280, 36);
 
   ctx.fillStyle = '#f5f3ee';
-  ctx.font = 'bold 52px Inter';
+  ctx.font = 'bold 72px Inter';
   ctx.fillText('Resumo do Treino', padding, 120);
-  ctx.font = '500 28px Inter';
+  ctx.font = '600 36px Inter';
   ctx.fillStyle = '#c7c6cf';
   ctx.fillText(fmtDate(filterDate).toUpperCase(), padding, 170);
 
-  const statTop = 220;
+  const statTop = 240;
   const statWidth = (canvas.width - padding*2 - 40)/3;
-  ctx.font = '600 22px Inter';
   [['Séries', totalSets], ['Exercícios', exerciseCount], ['Grupamentos', groups.length]].forEach((item,i)=>{
     const x = padding + i*(statWidth + 20);
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    ctx.fillRoundRect(x, statTop, statWidth, 180, 30);
+    ctx.fillRoundRect(x, statTop, statWidth, 210, 36);
     ctx.fillStyle = '#ff5a36';
-    ctx.font = 'bold 72px Inter';
-    ctx.fillText(item[1], x + 30, statTop + 110);
+    ctx.font = 'bold 96px Inter';
+    ctx.fillText(item[1], x + 30, statTop + 135);
     ctx.fillStyle = '#f5f3ee';
-    ctx.font = '600 24px Inter';
-    ctx.fillText(item[0], x + 30, statTop + 150);
+    ctx.font = '700 28px Inter';
+    ctx.fillText(item[0], x + 30, statTop + 190);
   });
 
-  const badgeTop = statTop + 260;
+  const badgeTop = statTop + 280;
   ctx.fillStyle = '#f5f3ee';
-  ctx.font = '700 28px Inter';
+  ctx.font = '800 36px Inter';
   ctx.fillText('Grupamentos', padding, badgeTop);
-  const badgeSize = 170;
-  const badgeGap = 22;
-  groups.slice(0,4).forEach((group,i)=>{
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    const x = padding + col * (badgeSize + badgeGap);
-    const y = badgeTop + 50 + row * (badgeSize + 22);
+  let tagX = padding;
+  let tagY = badgeTop + 50;
+  const tagGapX = 16;
+  const tagGapY = 14;
+  const tagHeight = 46;
+  ctx.font = '700 24px Inter';
+  groups.forEach((group,i) => {
+    const tagText = `# ${MUSCLE_LABELS[group]}`;
+    const textWidth = ctx.measureText(tagText).width;
+    const tagWidth = textWidth + 70;
+    if(tagX + tagWidth > canvas.width - padding){
+      tagX = padding;
+      tagY += tagHeight + tagGapY;
+    }
     const rawColor = MUSCLE_COLORS[group] || '#fff';
     const cssVarMatch = rawColor.match(/^var\((--[^\)]+)\)$/);
     const resolvedColor = cssVarMatch ? getComputedStyle(document.documentElement).getPropertyValue(cssVarMatch[1]).trim() || rawColor : rawColor;
     ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    ctx.fillRoundRect(x, y, badgeSize, badgeSize, 28);
+    ctx.fillRoundRect(tagX, tagY, tagWidth, tagHeight, tagHeight/2);
     ctx.fillStyle = resolvedColor;
-    ctx.fillRoundRect(x + 12, y + 12, badgeSize - 24, badgeSize - 24, 22);
-    ctx.fillStyle = '#121214';
+    ctx.fillRoundRect(tagX + 10, tagY + 10, 26, 26, 13);
+    ctx.fillStyle = '#fff';
     ctx.font = '700 22px Inter';
-    ctx.fillText(MUSCLE_LABELS[group], x + 18, y + badgeSize - 32);
+    ctx.fillText(tagText, tagX + 44, tagY + 30);
+    tagX += tagWidth + tagGapX;
   });
   if(groups.length === 0){
     ctx.fillStyle = '#9b9aa3';
-    ctx.font = '600 24px Inter';
-    ctx.fillText('Nenhum treino registrado', padding, badgeTop + 120);
+    ctx.font = '700 32px Inter';
+    ctx.fillText('Nenhum treino registrado', padding, badgeTop + 140);
   }
 
   const link = document.createElement('a');
