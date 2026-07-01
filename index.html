@@ -157,6 +157,10 @@
     font-size:14px;
     cursor:pointer;
   }
+  input::-webkit-datetime-edit {
+    display: block;
+    padding: 0;
+  }
   .combo-option:hover{ background:var(--surface-alt); }
 
   .btn{
@@ -195,7 +199,7 @@
 
   .filter-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
 
-  .ex-card{ border-left:3px solid var(--outro); padding:0px 12px; margin-bottom:16px; }
+  .ex-card{ display:flex;border-left:3px solid var(--outro); padding:0px 12px; margin-bottom:16px; }
   .ex-title{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; }
   .ex-name{ font-weight:700; font-size:15px; }
   .ex-vol{ font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text-muted); }
