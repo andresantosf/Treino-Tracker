@@ -259,11 +259,27 @@
   .share-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
   .share-title{ font-size:20px; font-weight:800; letter-spacing:.8px; line-height:1.1; }
   .share-subtitle{ font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; }
-  .share-stats{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .share-stats{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
   .share-stat{ background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1); border-radius:22px; padding:16px 12px; text-align:center; }
   .share-stat .num{ font-size:24px; font-weight:800; color:var(--accent); }
   .share-stat .lbl{ font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px; margin-top:6px; }
   .share-badges{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .timer-card{ background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:20px; padding:16px; }
+  .timer-card.rest{ background:rgba(255,255,255,.02); border-color:rgba(255,255,255,.06); }
+  .timer-header{ font-size:14px; color:var(--text-muted); margin-bottom:12px; }
+  .timer-header.rest{ color:#bbb; }
+  .timer-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .timer-field{ flex:1; min-width:180px; }
+  .timer-value{ font-family:'JetBrains Mono',monospace; font-size:38px; font-weight:800; color:var(--accent); margin-left:auto; }
+  .timer-value.rest{ color:#bbb; }
+  .timer-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:30; }
+  .modal.visible{ display:flex; }
+  .modal-backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.45); backdrop-filter: blur(2px); }
+  .modal-content{ position:relative; background:rgba(12,12,14,.96); border:1px solid rgba(255,255,255,.08); border-radius:24px; padding:24px; width:min(92vw,360px); box-shadow:0 20px 60px rgba(0,0,0,.35); display:grid; gap:16px; }
+  .modal-title{ font-size:18px; font-weight:800; color:#fff; }
+  .modal-content input{ width:100%; padding:14px 16px; border:1px solid rgba(255,255,255,.12); border-radius:16px; background:rgba(255,255,255,.04); color:#fff; font-size:16px; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; }
   .share-badge{ display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:12px 18px; font-size:15px; font-weight:700; color:var(--text); }
   .share-badge .badge-icon{ width:28px; height:28px; border-radius:999px; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; color:var(--text); font-size:14px; }
   .share-badge .badge-label{ font-size:15px; }
@@ -498,9 +514,205 @@ let entries = [];
 let tab = 'registrar';
 let filterDate = todayISO();
 let filterGroup = 'todos';
+let timerIntervalId = null;
+let timerSeconds = 0;
+let activeSet = null;
+let timerMode = 'idle'; // idle, work, rest
+let restTargetSetId = null;
+let repsModalOpen = false;
+let repsModalMode = 'save';
+let editModalOpen = false;
+let editModalSource = 'draft';
+let editModalId = null;
+let longPressTimer = null;
 
 // rascunho do formulário (sobrevive a troca de aba e a fechar/reabrir o artifact)
 let draft = { date: todayISO(), exerciseName: '', manualGroup: null, pendingSets: [] };
+
+function formatTime(seconds){
+  const min = Math.floor(seconds/60);
+  const sec = seconds % 60;
+  return `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function startSetTimer(){
+  const name = document.getElementById('ex-name').value.trim();
+  const weight = document.getElementById('set-weight').value;
+  const group = detectGroup(name) || draft.manualGroup;
+  if(!name){ alert('Informe o exercício para iniciar.'); return; }
+  if(!group){ alert('Selecione o grupamento muscular.'); return; }
+  if(!weight){ alert('Informe o peso para iniciar.'); return; }
+  if(timerIntervalId){ return; }
+  activeSet = { exercise:name, group, weight:Number(weight), startAt: Date.now() };
+  timerMode = 'work';
+  timerSeconds = 0;
+  lastWorkSeconds = 0;
+  timerIntervalId = setInterval(()=>{
+    timerSeconds += 1;
+    renderRegistrar();
+  }, 1000);
+  renderRegistrar();
+}
+
+function enterRestMode(){
+  if(timerMode !== 'work' || !activeSet) return;
+  if(timerIntervalId){
+    clearInterval(timerIntervalId);
+    timerIntervalId = null;
+  }
+  repsModalMode = 'rest';
+  repsModalOpen = true;
+  render();
+}
+
+function finishSet(){
+  if(timerMode !== 'work' || !activeSet){ alert('Inicie o timer antes de finalizar.'); return; }
+  if(timerIntervalId){
+    clearInterval(timerIntervalId);
+    timerIntervalId = null;
+  }
+  repsModalMode = 'save';
+  repsModalOpen = true;
+  render();
+}
+
+function submitRepsModal(){
+  const repsInput = document.getElementById('reps-modal-input');
+  if(!repsInput) return;
+  const reps = repsInput.value.trim();
+  const repsNumber = Number(reps);
+  if(!reps || Number.isNaN(repsNumber) || repsNumber <= 0){
+    alert('Informe um número válido de repetições.');
+    return;
+  }
+  const duration = timerSeconds;
+  const set = {
+    id: uid(), exercise: activeSet.exercise, group: activeSet.group,
+    reps: repsNumber, weight: activeSet.weight, durationSecs: duration, restSeconds: null, createdAt: Date.now()
+  };
+  draft.pendingSets.push(set);
+  activeSet = null;
+  repsModalOpen = false;
+
+  if(repsModalMode === 'rest'){
+    timerMode = 'rest';
+    restTargetSetId = set.id;
+    timerSeconds = 0;
+    timerIntervalId = setInterval(()=>{
+      timerSeconds += 1;
+      renderRegistrar();
+    }, 1000);
+    saveDraft();
+    renderSetList();
+    render();
+    return;
+  }
+
+  timerMode = 'idle';
+  timerSeconds = 0;
+  saveDraft();
+  renderSetList();
+  render();
+}
+
+function closeRepsModal(){
+  repsModalOpen = false;
+  render();
+}
+
+function startEditPress(source, id){
+  if(longPressTimer){ clearTimeout(longPressTimer); }
+  longPressTimer = setTimeout(()=>{ openEditModal(source, id); longPressTimer = null; }, 600);
+}
+
+function cancelEditPress(){
+  if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+}
+
+function openEditModal(source, id){
+  const list = source === 'draft' ? draft.pendingSets : entries;
+  const item = list.find(e => e.id === id);
+  if(!item) return;
+  editModalOpen = true;
+  editModalSource = source;
+  editModalId = id;
+  render();
+  setTimeout(() => {
+    const weightInput = document.getElementById('edit-weight');
+    const repsInput = document.getElementById('edit-reps');
+    const durationInput = document.getElementById('edit-duration');
+    const restInput = document.getElementById('edit-rest');
+    if(weightInput) weightInput.value = item.weight ?? '';
+    if(repsInput) repsInput.value = item.reps ?? '';
+    if(durationInput) durationInput.value = item.durationSecs ?? 0;
+    if(restInput) restInput.value = item.restSeconds ?? 0;
+    exerciseInput?.focus();
+  }, 50);
+}
+
+function submitEditModal(){
+  const weight = Number(document.getElementById('edit-weight')?.value);
+  const reps = Number(document.getElementById('edit-reps')?.value);
+  const durationSecs = Number(document.getElementById('edit-duration')?.value);
+  const restSeconds = Number(document.getElementById('edit-rest')?.value);
+  if(Number.isNaN(weight) || weight < 0){ alert('Informe um peso válido.'); return; }
+  if(Number.isNaN(reps) || reps <= 0){ alert('Informe repetições válidas.'); return; }
+  if(Number.isNaN(durationSecs) || durationSecs < 0){ alert('Informe um tempo de execução válido.'); return; }
+  if(Number.isNaN(restSeconds) || restSeconds < 0){ alert('Informe um tempo de descanso válido.'); return; }
+
+  const list = editModalSource === 'draft' ? draft.pendingSets : entries;
+  const item = list.find(e => e.id === editModalId);
+  if(!item){ closeEditModal(); return; }
+  item.weight = weight;
+  item.reps = reps;
+  item.durationSecs = durationSecs || null;
+  item.restSeconds = restSeconds || null;
+
+  if(editModalSource === 'draft'){
+    saveDraft();
+    renderSetList();
+    renderRegistrar();
+  } else {
+    saveEntries();
+    renderDashboard();
+  }
+  closeEditModal();
+}
+
+function closeEditModal(){
+  editModalOpen = false;
+  render();
+}
+
+function stopRest(){
+  if(timerMode !== 'rest') return;
+  if(timerIntervalId){
+    clearInterval(timerIntervalId);
+    timerIntervalId = null;
+  }
+  if(restTargetSetId){
+    const set = draft.pendingSets.find(s => s.id === restTargetSetId);
+    if(set){ set.restSeconds = timerSeconds; }
+    restTargetSetId = null;
+    saveDraft();
+    renderSetList();
+  }
+  timerMode = 'idle';
+  timerSeconds = 0;
+  renderRegistrar();
+}
+
+function cancelSet(){
+  if(timerIntervalId){
+    clearInterval(timerIntervalId);
+    timerIntervalId = null;
+    activeSet = null;
+    restTargetSetId = null;
+    timerMode = 'idle';
+    timerSeconds = 0;
+    renderRegistrar();
+  }
+}
 
 function loadEntries(){
   try{
@@ -538,8 +750,38 @@ function render(){
       <div class="tab-btn ${tab==='dashboard'?'active':''}" onclick="setTab('dashboard')">DASHBOARD</div>
     </div>
     <div id="tab-content"></div>
+    <div id="reps-modal" class="modal ${repsModalOpen?'visible':''}">
+      <div class="modal-backdrop" onclick="closeRepsModal()"></div>
+      <div class="modal-content">
+        <div class="modal-title">Quantas repetições?</div>
+        <input id="reps-modal-input" type="number" inputmode="numeric" min="1" placeholder="12" autocomplete="off">
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeRepsModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="submitRepsModal()">Salvar</button>
+        </div>
+      </div>
+    </div>
+    <div id="edit-modal" class="modal ${editModalOpen?'visible':''}">
+      <div class="modal-backdrop" onclick="closeEditModal()"></div>
+      <div class="modal-content">
+        <div class="modal-title">Editar registro</div>
+        <label>Peso (kg)</label>
+        <input id="edit-weight" type="number" inputmode="decimal" min="0" step="0.5">
+        <label>Repetições</label>
+        <input id="edit-reps" type="number" inputmode="numeric" min="1">
+        <label>Tempo de execução (segundos)</label>
+        <input id="edit-duration" type="number" inputmode="numeric" min="0">
+        <label>Descanso (segundos)</label>
+        <input id="edit-rest" type="number" inputmode="numeric" min="0">
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeEditModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="submitEditModal()">Salvar</button>
+        </div>
+      </div>
+    </div>
   `;
   if(tab==='registrar') renderRegistrar(); else renderDashboard();
+  if(repsModalOpen){ setTimeout(()=>document.getElementById('reps-modal-input')?.focus(), 50); }
 }
 
 function setTab(t){ tab=t; render(); }
@@ -549,6 +791,8 @@ function renderRegistrar(){
   const c = document.getElementById('tab-content');
   const detected = detectGroup(draft.exerciseName);
   const group = detected || draft.manualGroup;
+  const timerActive = Boolean(timerIntervalId);
+  const displayWeight = activeSet ? activeSet.weight : document.getElementById('set-weight')?.value || '';
 
   c.innerHTML = `
     <div class="card">
@@ -565,23 +809,29 @@ function renderRegistrar(){
     </div>
 
     <div class="card">
-      <label>Adicionar série</label>
-      <div class="row">
-        <div>
-          <label>Repetições</label>
-          <input type="number" id="set-reps" inputmode="numeric" pattern="[0-9]*" min="0" placeholder="12">
+      <label>Série com cronômetro</label>
+      <div class="timer-card ${timerMode==='rest'?'rest':''}">
+        <div class="timer-header ${timerMode==='rest'?'rest':''}">${timerMode==='rest' ? 'Descanso ativo' : draft.exerciseName ? `Exercício selecionado: <strong>${draft.exerciseName}</strong>` : 'Selecione um exercício'}</div>
+        <div class="timer-row">
+          <div class="timer-field">
+            <label>Peso (kg)</label>
+            <input type="number" id="set-weight" inputmode="decimal" pattern="[0-9]*" min="0" step="0.5" placeholder="40" value="${displayWeight}" ${timerMode==='work' ? 'disabled' : ''}>
+          </div>
+          <div class="timer-value ${timerMode==='rest'?'rest':''}">${timerMode==='rest'? 'Descanso ' : ''}${formatTime(timerSeconds)}</div>
         </div>
-        <div>
-          <label>Carga (kg)</label>
-          <input type="number" id="set-weight" inputmode="decimal" pattern="[0-9]*" min="0" step="0.5" placeholder="40">
-        </div>
-        <div>
-          <label>Descanso (seg, opcional)</label>
-          <input type="number" id="set-time" inputmode="numeric" pattern="[0-9]*" min="0" placeholder="60">
+        <div class="timer-actions">
+          ${timerMode==='work' ? `
+            <button class="btn btn-primary" onclick="enterRestMode()">Descanso</button>
+            <button class="btn btn-ghost" onclick="finishSet()">Finalizar</button>
+            <button class="btn btn-small btn-ghost" onclick="cancelSet()">Cancelar</button>
+          ` : timerMode==='rest' ? `
+            <button class="btn btn-primary" onclick="stopRest()">Parar descanso</button>
+            <button class="btn btn-small btn-ghost" onclick="cancelSet()">Cancelar</button>
+          ` : `
+            <button class="btn btn-primary" onclick="startSetTimer()">Iniciar</button>
+          `}
         </div>
       </div>
-      <div style="height:10px"></div>
-      <button class="btn btn-add" onclick="addSet()">+ Adicionar série</button>
     </div>
 
     <div class="card">
@@ -676,27 +926,6 @@ function onManualGroupChange(v){
   saveDraft();
 }
 
-function addSet(){
-  const name = document.getElementById('ex-name').value.trim();
-  const reps = document.getElementById('set-reps').value;
-  const weight = document.getElementById('set-weight').value;
-  const time = document.getElementById('set-time').value;
-  const group = detectGroup(name) || draft.manualGroup;
-  if(!name){ alert('Informe o nome do exercício.'); return; }
-  if(!group){ alert('Selecione o grupamento muscular.'); return; }
-  if(!reps || !weight){ alert('Informe repetições e carga.'); return; }
-
-  draft.pendingSets.push({
-    id: uid(), exercise:name, group,
-    reps:Number(reps), weight:Number(weight), restSeconds: time?Number(time):null
-  });
-  document.getElementById('set-reps').value='';
-  document.getElementById('set-weight').value='';
-  document.getElementById('set-time').value='';
-  renderSetList();
-  saveDraft();
-}
-
 function removeSet(id){
   draft.pendingSets = draft.pendingSets.filter(s=>s.id!==id);
   renderSetList();
@@ -736,14 +965,15 @@ function renderSetList(){
           <span style="font-weight:700; font-size:13px">${name}</span>
         </div>
         ${sets.map((s,i)=>`
-          <div class="set-row">
+          <div class="set-row" onmousedown="startEditPress('draft','${s.id}')" onmouseup="cancelEditPress()" onmouseleave="cancelEditPress()" ontouchstart="startEditPress('draft','${s.id}')" ontouchend="cancelEditPress()" ontouchcancel="cancelEditPress()">
             <div class="set-num">${i+1}</div>
             <div class="set-data">
               <div><span class="lbl">reps</span>${s.reps}</div>
               <div><span class="lbl">kg</span>${s.weight}</div>
-              ${s.restSeconds?`<div><span class="lbl">descanso</span>${s.restSeconds}s</div>`:''}
+              ${s.durationSecs?`<div><span class="lbl">tempo</span>${formatTime(s.durationSecs)}</div>`:''}
+              ${s.restSeconds?`<div><span class="lbl">descanso</span>${formatTime(s.restSeconds)}</div>`:''}
             </div>
-            <button class="del-btn" onclick="removeSet('${s.id}')">✕</button>
+            <button class="del-btn" onclick="event.stopPropagation(); removeSet('${s.id}')">✕</button>
           </div>
         `).join('')}
       </div>
@@ -754,10 +984,21 @@ function renderSetList(){
 function saveWorkout(){
   const date = draft.date || todayISO();
   if(draft.pendingSets.length===0){ alert('Adicione pelo menos uma série.'); return; }
+  if(timerIntervalId){
+    clearInterval(timerIntervalId);
+    timerIntervalId = null;
+  }
+  if(timerMode==='rest' && restTargetSetId){
+    const pending = draft.pendingSets.find(s => s.id === restTargetSetId);
+    if(pending){ pending.restSeconds = timerSeconds; }
+  }
 
   const newEntries = draft.pendingSets.map(s=>({
     id: uid(), date, exercise:s.exercise, muscleGroup:s.group,
-    reps:s.reps, weight:s.weight, restSeconds:s.restSeconds, createdAt: Date.now()
+    reps:s.reps, weight:s.weight,
+    durationSecs: s.durationSecs ?? s.restSeconds ?? null,
+    restSeconds: s.restSeconds ?? null,
+    createdAt: Date.now()
   }));
   entries = entries.concat(newEntries);
   saveEntries();
@@ -888,6 +1129,7 @@ function renderDaySummary(){
   const totalSets = dayEntries.length;
   const exNames = new Set(dayEntries.map(e=>e.exercise));
 
+  const totalDuration = dayEntries.reduce((sum,e)=>sum + (e.durationSecs || 0) + (e.restSeconds || 0), 0);
   document.getElementById('day-summary').innerHTML = `
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
@@ -897,6 +1139,7 @@ function renderDaySummary(){
       <div class="stat-grid">
         <div class="stat"><div class="num">${totalSets}</div><div class="lbl">Séries</div></div>
         <div class="stat"><div class="num">${exNames.size}</div><div class="lbl">Exercícios</div></div>
+        <div class="stat"><div class="num">${formatTime(totalDuration)}</div><div class="lbl">Tempo total de treino</div></div>
       </div>
     </div>
   `;
@@ -927,9 +1170,9 @@ function renderDaySummary(){
         </div>
         <div class="set-chip-row">
           ${data.sets.map(s=>`
-            <div class="set-chip">
-              ${s.reps}×${s.weight}kg${s.restSeconds?` · ${s.restSeconds}s`:''}
-              <button onclick="deleteEntry('${s.id}')">✕</button>
+            <div class="set-chip" onmousedown="startEditPress('entry','${s.id}')" onmouseup="cancelEditPress()" onmouseleave="cancelEditPress()" ontouchstart="startEditPress('entry','${s.id}')" ontouchend="cancelEditPress()" ontouchcancel="cancelEditPress()">
+              ${s.reps}×${s.weight}kg${s.durationSecs?` · ${formatTime(s.durationSecs)}`:''}${s.restSeconds?` · descanso ${formatTime(s.restSeconds)}`:''}
+              <button onclick="event.stopPropagation(); deleteEntry('${s.id}')">✕</button>
             </div>
           `).join('')}
         </div>
@@ -947,6 +1190,13 @@ function deleteEntry(id){
 function renderShareCard(totalSets, exerciseCount, groups){
   const shareCard = document.getElementById('share-card');
   if(!shareCard) return;
+
+  const dayEntries = entries.filter(e=>e.date===filterDate && (filterGroup==='todos'|| e.muscleGroup===filterGroup));
+  const totalDuration = dayEntries.reduce((sum,e)=>sum + (e.durationSecs || 0), 0);
+  const avgDuration = dayEntries.length ? Math.round(totalDuration / dayEntries.length) : 0;
+  const restEntries = dayEntries.filter(e=>typeof e.restSeconds === 'number');
+  const totalRest = restEntries.reduce((sum,e)=>sum + (e.restSeconds || 0), 0);
+  const avgRest = restEntries.length ? Math.round(totalRest / restEntries.length) : 0;
 
   const badges = groups.length > 0 ? groups.map(group=>`
       <div class="share-badge">
@@ -968,6 +1218,8 @@ function renderShareCard(totalSets, exerciseCount, groups){
         <div class="share-stat"><div class="num">${totalSets}</div><div class="lbl">Séries Totais</div></div>
         <div class="share-stat"><div class="num">${exerciseCount}</div><div class="lbl">Exercícios</div></div>
         <div class="share-stat"><div class="num">${groups.length}</div><div class="lbl">Grupamentos</div></div>
+        <div class="share-stat"><div class="num">${formatTime(avgDuration)}</div><div class="lbl">Média de Execução</div></div>
+        <div class="share-stat"><div class="num">${formatTime(avgRest)}</div><div class="lbl">Média de Descanso</div></div>
       </div>
       <div class="share-badges">
         ${badges}
@@ -989,21 +1241,23 @@ function downloadShareImage(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   const padding = 80;
-  ctx.fillStyle = 'rgba(22,22,22,0.0)';
-  ctx.fillRoundRect(padding - 16, 40, canvas.width - padding*2 + 32, 280, 36);
+  ctx.fillStyle = 'rgba(22,22,22,0.4)';
+  ctx.fillRoundRect(padding - 16, 40, canvas.width - padding*2 + 32, 170, 36);
 
   ctx.fillStyle = '#f5f3ee';
   ctx.font = 'bold 72px Inter';
-  ctx.fillText('Resumo do Treino', padding, 120);
+  ctx.fillText('Resumo do Treino', 110, 120);
   ctx.font = '600 36px Inter';
   ctx.fillStyle = '#c7c6cf';
-  ctx.fillText(fmtDate(filterDate).toUpperCase(), padding, 170);
+  ctx.fillText(fmtDate(filterDate).toUpperCase(), 110, 170);
 
+  const totalDuration = dayEntries.reduce((sum,e)=>sum + (e.durationSecs || 0) + (e.restSeconds || 0), 0);
+  
   const statTop = 240;
   const statWidth = (canvas.width - padding*2 - 40)/3;
   [['Séries', totalSets], ['Exercícios', exerciseCount], ['Grupamentos', groups.length]].forEach((item,i)=>{
     const x = padding + i*(statWidth + 20);
-    ctx.fillStyle = 'rgba(22,22,22,0.2)';
+    ctx.fillStyle = 'rgba(22,22,22,0.4)';
     ctx.fillRoundRect(x, statTop, statWidth, 210, 36);
     ctx.fillStyle = '#ff5a36';
     ctx.font = 'bold 96px Inter';
@@ -1013,7 +1267,18 @@ function downloadShareImage(){
     ctx.fillText(item[0], x + 30, statTop + 190);
   });
 
-  const badgeTop = statTop + 280;
+  const totalBlockTop = statTop + 250;
+  const totalBlockHeight = 160;
+  ctx.fillStyle = 'rgba(22,22,22,0.4)';
+  ctx.fillRoundRect(padding, totalBlockTop, canvas.width - padding*2, totalBlockHeight, 36);
+  ctx.fillStyle = '#ff5a36';
+  ctx.font = 'bold 64px Inter';
+  ctx.fillText(formatTime(totalDuration), padding + 30, totalBlockTop + 130);
+  ctx.fillStyle = '#f5f3ee';
+  ctx.font = '700 24px Inter';
+  ctx.fillText('Tempo total de treino', padding + 30, totalBlockTop + 42);
+
+  const badgeTop = totalBlockTop + totalBlockHeight + 80;
   ctx.fillStyle = '#f5f3ee';
   ctx.font = '800 36px Inter';
   ctx.fillText('Grupamentos', padding, badgeTop);
@@ -1034,7 +1299,7 @@ function downloadShareImage(){
     const rawColor = MUSCLE_COLORS[group] || '#fff';
     const cssVarMatch = rawColor.match(/^var\((--[^\)]+)\)$/);
     const resolvedColor = cssVarMatch ? getComputedStyle(document.documentElement).getPropertyValue(cssVarMatch[1]).trim() || rawColor : rawColor;
-    ctx.fillStyle = 'rgba(22,22,22,0.22)';
+    ctx.fillStyle = 'rgba(22,22,22,0.4)';
     ctx.fillRoundRect(tagX, tagY, tagWidth, tagHeight, tagHeight/2);
     ctx.fillStyle = resolvedColor;
     ctx.fillRoundRect(tagX + 12, tagY + 14, 32, 32, 16);
