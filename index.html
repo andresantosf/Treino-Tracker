@@ -264,9 +264,9 @@
   .share-stat .num{ font-size:24px; font-weight:800; color:var(--accent); }
   .share-stat .lbl{ font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px; margin-top:6px; }
   .share-badges{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-  .share-badge{ display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:10px 14px; font-size:13px; font-weight:700; color:var(--text); }
-  .share-badge .badge-icon{ width:24px; height:24px; border-radius:999px; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; color:var(--text); font-size:12px; }
-  .share-badge .badge-label{ font-size:13px; }
+  .share-badge{ display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:12px 18px; font-size:15px; font-weight:700; color:var(--text); }
+  .share-badge .badge-icon{ width:28px; height:28px; border-radius:999px; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; color:var(--text); font-size:14px; }
+  .share-badge .badge-label{ font-size:15px; }
   .share-placeholder{ min-height:48px; border-radius:999px; background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:13px; padding:10px 16px; }
 
   @media (max-width:480px){
@@ -1003,7 +1003,7 @@ function downloadShareImage(){
   const statWidth = (canvas.width - padding*2 - 40)/3;
   [['Séries', totalSets], ['Exercícios', exerciseCount], ['Grupamentos', groups.length]].forEach((item,i)=>{
     const x = padding + i*(statWidth + 20);
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
     ctx.fillRoundRect(x, statTop, statWidth, 210, 36);
     ctx.fillStyle = '#ff5a36';
     ctx.font = 'bold 96px Inter';
@@ -1034,13 +1034,13 @@ function downloadShareImage(){
     const rawColor = MUSCLE_COLORS[group] || '#fff';
     const cssVarMatch = rawColor.match(/^var\((--[^\)]+)\)$/);
     const resolvedColor = cssVarMatch ? getComputedStyle(document.documentElement).getPropertyValue(cssVarMatch[1]).trim() || rawColor : rawColor;
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
     ctx.fillRoundRect(tagX, tagY, tagWidth, tagHeight, tagHeight/2);
     ctx.fillStyle = resolvedColor;
-    ctx.fillRoundRect(tagX + 10, tagY + 10, 26, 26, 13);
+    ctx.fillRoundRect(tagX + 10, tagY + 10, 30, 30, 15);
     ctx.fillStyle = '#fff';
-    ctx.font = '700 22px Inter';
-    ctx.fillText(tagText, tagX + 44, tagY + 30);
+    ctx.font = '800 26px Inter';
+    ctx.fillText(tagText, tagX + 48, tagY + 33);
     tagX += tagWidth + tagGapX;
   });
   if(groups.length === 0){
