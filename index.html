@@ -247,6 +247,28 @@
   .calendar-day .day-count{ font-size:8px; font-weight:700; padding:2px 4px; border-radius:999px; background:rgba(0,0,0,.2); line-height:1; }
   .calendar-weekday{ text-align:center; color:var(--text-muted); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
 
+  .share-preview{
+    display:grid;
+    gap:14px;
+    padding:16px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:24px;
+    backdrop-filter: blur(12px);
+  }
+  .share-header{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .share-title{ font-size:20px; font-weight:800; letter-spacing:.8px; line-height:1.1; }
+  .share-subtitle{ font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; }
+  .share-stats{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .share-stat{ background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1); border-radius:22px; padding:16px 12px; text-align:center; }
+  .share-stat .num{ font-size:24px; font-weight:800; color:var(--accent); }
+  .share-stat .lbl{ font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px; margin-top:6px; }
+  .share-badges{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+  .share-badge{ min-width:90px; flex:1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:22px; padding:14px 10px; text-align:center; }
+  .share-badge .badge-icon{ width:34px; height:34px; border-radius:16px; margin:0 auto 10px; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; color:var(--text); font-size:14px; }
+  .share-badge .badge-label{ font-size:13px; color:var(--text); font-weight:700; }
+  .share-placeholder{ min-height:92px; border-radius:22px; background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:13px; }
+
   @media (max-width:480px){
     #app{ padding:max(14px, env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)); }
     .card{ padding:13px; border-radius:16px; }
@@ -256,6 +278,8 @@
     input, select{ font-size:15px; }
     input[type="date"]{ padding-right:8px; }
     input[type="number"]{ font-size:16px; }
+    .share-stats{ grid-template-columns:1fr; }
+    .share-badge{ min-width:0; flex:1 1 100%; }
   }
 </style>
 </head>
@@ -610,6 +634,7 @@ function renderDashboard(){
       <div id="calendar"></div>
     </div>
     <div id="day-summary"></div>
+    <div id="share-card" class="card"></div>
     <div id="ex-groups"></div>
     <div class="card">
       <label>Histórico de dias</label>
@@ -720,13 +745,17 @@ function renderDaySummary(){
   `;
 
   const byExercise = {};
+  const groupSet = new Set();
   dayEntries.forEach(e=>{
     if(!byExercise[e.exercise]) byExercise[e.exercise] = { group:e.muscleGroup, sets:[] };
     byExercise[e.exercise].sets.push(e);
+    groupSet.add(e.muscleGroup);
   });
 
   const groupsEl = document.getElementById('ex-groups');
+  const shareCard = document.getElementById('share-card');
   const names = Object.keys(byExercise);
+  renderShareCard(totalSets, exNames.size, Array.from(groupSet));
   if(names.length===0){
     groupsEl.innerHTML = '<div class="card"><div class="empty">Nenhum exercício registrado para este filtro</div></div>';
     return;
@@ -756,6 +785,128 @@ function deleteEntry(id){
   entries = entries.filter(e=>e.id!==id);
   saveEntries();
   renderDashboard();
+}
+
+function renderShareCard(totalSets, exerciseCount, groups){
+  const shareCard = document.getElementById('share-card');
+  if(!shareCard) return;
+
+  const badges = groups.length > 0 ? groups.map(group=>`
+      <div class="share-badge">
+        <div class="badge-icon" style="background:${MUSCLE_COLORS[group]}33; color:${MUSCLE_COLORS[group]};">${MUSCLE_LABELS[group].slice(0,2)}</div>
+        <div class="badge-label">${MUSCLE_LABELS[group]}</div>
+      </div>
+    `).join('') : '<div class="share-placeholder">Sem grupamentos ainda</div>';
+
+  shareCard.innerHTML = `
+    <div class="share-preview">
+      <div class="share-header">
+        <div>
+          <div class="share-subtitle">Resumo do treino de hoje</div>
+          <div class="share-title">${fmtDate(filterDate)}</div>
+        </div>
+        <button class="btn btn-primary" onclick="downloadShareImage()">Baixar PNG</button>
+      </div>
+      <div class="share-stats">
+        <div class="share-stat"><div class="num">${totalSets}</div><div class="lbl">Séries Totais</div></div>
+        <div class="share-stat"><div class="num">${exerciseCount}</div><div class="lbl">Exercícios</div></div>
+        <div class="share-stat"><div class="num">${groups.length}</div><div class="lbl">Grupamentos</div></div>
+      </div>
+      <div class="share-badges">
+        ${badges}
+      </div>
+    </div>
+    <canvas id="share-canvas" width="1200" height="1200" style="display:none"></canvas>
+  `;
+}
+
+function downloadShareImage(){
+  const canvas = document.getElementById('share-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dayEntries = entries.filter(e=>e.date===filterDate && (filterGroup==='todos'||e.muscleGroup===filterGroup));
+  const totalSets = dayEntries.length;
+  const exerciseCount = new Set(dayEntries.map(e=>e.exercise)).size;
+  const groups = Array.from(new Set(dayEntries.map(e=>e.muscleGroup)));
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const padding = 80;
+  ctx.fillStyle = 'rgba(255,255,255,0.0)';
+  ctx.fillRoundRect(padding - 16, 40, canvas.width - padding*2 + 32, 280, 36);
+
+  ctx.fillStyle = '#f5f3ee';
+  ctx.font = 'bold 52px Inter';
+  ctx.fillText('Resumo do Treino', padding, 120);
+  ctx.font = '500 28px Inter';
+  ctx.fillStyle = '#c7c6cf';
+  ctx.fillText(fmtDate(filterDate).toUpperCase(), padding, 170);
+
+  const statTop = 220;
+  const statWidth = (canvas.width - padding*2 - 40)/3;
+  ctx.font = '600 22px Inter';
+  [['Séries', totalSets], ['Exercícios', exerciseCount], ['Grupamentos', groups.length]].forEach((item,i)=>{
+    const x = padding + i*(statWidth + 20);
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRoundRect(x, statTop, statWidth, 180, 30);
+    ctx.fillStyle = '#ff5a36';
+    ctx.font = 'bold 72px Inter';
+    ctx.fillText(item[1], x + 30, statTop + 110);
+    ctx.fillStyle = '#f5f3ee';
+    ctx.font = '600 24px Inter';
+    ctx.fillText(item[0], x + 30, statTop + 150);
+  });
+
+  const badgeTop = statTop + 260;
+  ctx.fillStyle = '#f5f3ee';
+  ctx.font = '700 28px Inter';
+  ctx.fillText('Grupamentos', padding, badgeTop);
+  const badgeSize = 170;
+  const badgeGap = 22;
+  groups.slice(0,4).forEach((group,i)=>{
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const x = padding + col * (badgeSize + badgeGap);
+    const y = badgeTop + 50 + row * (badgeSize + 22);
+    const rawColor = MUSCLE_COLORS[group] || '#fff';
+    const cssVarMatch = rawColor.match(/^var\((--[^\)]+)\)$/);
+    const resolvedColor = cssVarMatch ? getComputedStyle(document.documentElement).getPropertyValue(cssVarMatch[1]).trim() || rawColor : rawColor;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRoundRect(x, y, badgeSize, badgeSize, 28);
+    ctx.fillStyle = resolvedColor;
+    ctx.fillRoundRect(x + 12, y + 12, badgeSize - 24, badgeSize - 24, 22);
+    ctx.fillStyle = '#121214';
+    ctx.font = '700 22px Inter';
+    ctx.fillText(MUSCLE_LABELS[group], x + 18, y + badgeSize - 32);
+  });
+  if(groups.length === 0){
+    ctx.fillStyle = '#9b9aa3';
+    ctx.font = '600 24px Inter';
+    ctx.fillText('Nenhum treino registrado', padding, badgeTop + 120);
+  }
+
+  const link = document.createElement('a');
+  link.href = canvas.toDataURL('image/png');
+  link.download = `treino-${filterDate}.png`;
+  link.click();
+}
+
+if (!CanvasRenderingContext2D.prototype.fillRoundRect) {
+  CanvasRenderingContext2D.prototype.fillRoundRect = function(x,y,w,h,r){
+    if(typeof r==='undefined') r=8;
+    this.beginPath();
+    this.moveTo(x+r,y);
+    this.lineTo(x+w-r,y);
+    this.quadraticCurveTo(x+w,y,x+w,y+r);
+    this.lineTo(x+w,y+h-r);
+    this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    this.lineTo(x+r,y+h);
+    this.quadraticCurveTo(x,y+h,x,y+h-r);
+    this.lineTo(x,y+r);
+    this.quadraticCurveTo(x,y,x+r,y);
+    this.closePath();
+    this.fill();
+  };
 }
 
 // ---------- INIT ----------
