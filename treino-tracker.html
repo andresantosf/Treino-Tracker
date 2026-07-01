@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<!-- saved from url=(0042)https://simpleskans.com.br/dnd/2024/magias -->
+<html lang="pt-BR"><script async="" src="https://www.clarity.ms/tag/lqt7soyxw2"></script>
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Meu App">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<title>Diário de Treino</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+
+  :root{
+    --bg: #121214;
+    --surface: #1b1b1f;
+    --surface-alt: #232328;
+    --border: #2e2e34;
+    --text: #f5f3ee;
+    --text-muted: #9b9aa3;
+    --accent: #ff5a36;
+    --accent-dim: #ff5a3622;
+
+    --peito: #ff5a5a;
+    --costas: #4da6ff;
+    --perna: #4ade80;
+    --ombro: #facc15;
+    --braco: #c084fc;
+    --core: #2dd4bf;
+    --outro: #9b9aa3;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{ max-width:640px; margin:0 auto; padding:20px 16px 60px; }
+
+  h1.brand{
+    font-family:'Bebas Neue',sans-serif;
+    letter-spacing:2px;
+    font-size:38px;
+    margin:4px 0 2px;
+    line-height:1;
+  }
+  .brand-sub{ color:var(--text-muted); font-size:13px; margin-bottom:20px; }
+
+  .tabs{ display:flex; gap:8px; margin-bottom:20px; }
+  .tab-btn{
+    flex:1; padding:10px 0; text-align:center; border-radius:10px;
+    border:1px solid var(--border); background:var(--surface);
+    color:var(--text-muted); font-weight:600; font-size:13px;
+    cursor:pointer; letter-spacing:.3px; transition:.15s;
+  }
+  .tab-btn.active{ background:var(--accent); color:#151013; border-color:var(--accent); }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:16px; margin-bottom:14px;
+  }
+  label{ display:block; font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:600; text-transform:uppercase; letter-spacing:.4px; }
+  input, select{
+    width:100%; background:var(--surface-alt); border:1px solid var(--border);
+    color:var(--text); padding:10px 12px; border-radius:9px; font-size:15px;
+    font-family:'Inter',sans-serif;
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--accent); }
+  .row{ display:flex; gap:10px; }
+  .row > div{ flex:1; }
+
+  .group-badge{
+    display:inline-flex; align-items:center; gap:6px; padding:5px 11px;
+    border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.3px;
+    margin-top:8px;
+  }
+  .dot{ width:8px; height:8px; border-radius:50%; }
+
+  .btn{
+    width:100%; padding:12px; border-radius:10px; border:none;
+    font-weight:700; font-size:14px; cursor:pointer; letter-spacing:.3px;
+    font-family:'Inter',sans-serif;
+  }
+  .btn-primary{ background:var(--accent); color:#151013; }
+  .btn-ghost{ background:transparent; border:1px solid var(--border); color:var(--text); }
+  .btn-add{ background:var(--surface-alt); border:1px dashed var(--border); color:var(--accent); }
+  .btn-small{ padding:6px 10px; font-size:12px; border-radius:7px; }
+
+  .set-row{
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    background:var(--surface-alt); border-radius:10px; margin-bottom:8px;
+  }
+  .set-num{
+    font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--accent);
+    width:22px; text-align:center;
+  }
+  .set-data{ flex:1; font-family:'JetBrains Mono',monospace; font-size:14px; display:flex; gap:14px; }
+  .set-data .lbl{ color:var(--text-muted); font-family:'Inter',sans-serif; font-size:11px; margin-right:3px; }
+  .del-btn{ background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:16px; padding:2px 6px; }
+  .del-btn:hover{ color:var(--peito); }
+
+  .empty{ color:var(--text-muted); font-size:13px; text-align:center; padding:14px 0; }
+
+  .stat-grid{ display:flex; gap:10px; margin-bottom:14px; }
+  .stat{
+    flex:1; background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:14px 10px; text-align:center;
+  }
+  .stat .num{ font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--accent); }
+  .stat .lbl{ font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.4px; margin-top:4px; }
+
+  .filter-row{ display:flex; gap:10px; margin-bottom:14px; }
+
+  .ex-card{ border-left:3px solid var(--outro); padding-left:12px; margin-bottom:16px; }
+  .ex-title{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .ex-name{ font-weight:700; font-size:15px; }
+  .ex-vol{ font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text-muted); }
+  .set-chip-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .set-chip{
+    font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--surface-alt);
+    border:1px solid var(--border); border-radius:7px; padding:5px 9px; display:flex; align-items:center; gap:6px;
+  }
+  .set-chip button{ background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px; padding:0; }
+
+  .day-list-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 4px; border-bottom:1px solid var(--border); cursor:pointer;
+  }
+  .day-list-item:last-child{ border-bottom:none; }
+  .day-list-item:hover{ background:var(--surface-alt); }
+  .day-date{ font-weight:600; font-size:14px; }
+  .day-vol{ font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:13px; }
+
+  .loading{ text-align:center; color:var(--text-muted); padding:40px 0; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="loading" id="loading">Carregando seus dados de treino…</div>
+</div>
+
+<script>
+const MUSCLE_COLORS = {
+  peito:'var(--peito)', costas:'var(--costas)', perna:'var(--perna)',
+  ombro:'var(--ombro)', braco:'var(--braco)', core:'var(--core)', outro:'var(--outro)'
+};
+const MUSCLE_LABELS = {
+  peito:'Peito', costas:'Costas', perna:'Perna', ombro:'Ombro', braco:'Braço', core:'Core', outro:'Outro'
+};
+
+// mapa exercicio -> grupamento (chaves em minusculo, sem acento pra facilitar match)
+const EXERCISE_DB = {
+  'supino reto':'peito','supino inclinado':'peito','supino declinado':'peito',
+  'crucifixo':'peito','crossover':'peito','peck deck':'peito','flexao':'peito','flexao de braco':'peito',
+  'puxada':'costas','puxada frente':'costas','puxada alta':'costas','pulldown':'costas',
+  'remada baixa':'costas','remada curvada':'costas','remada cavalinho':'costas','remada unilateral':'costas',
+  'barra fixa':'costas','levantamento terra':'costas',
+  'agachamento':'perna','agachamento livre':'perna','leg press':'perna','cadeira extensora':'perna',
+  'mesa flexora':'perna','cadeira flexora':'perna','panturrilha':'perna','avanco':'perna','afundo':'perna','stiff':'perna',
+  'desenvolvimento':'ombro','desenvolvimento militar':'ombro','elevacao lateral':'ombro',
+  'elevacao frontal':'ombro','remada alta':'ombro','arnold press':'ombro',
+  'rosca direta':'braco','rosca alternada':'braco','rosca martelo':'braco','rosca scott':'braco',
+  'triceps pulley':'braco','triceps testa':'braco','triceps corda':'braco','triceps frances':'braco',
+  'abdominal':'core','prancha':'core','abdominal supra':'core','elevacao de pernas':'core','abdominal infra':'core'
+};
+
+function normalize(s){
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+function detectGroup(name){
+  const n = normalize(name);
+  if(!n) return null;
+  if(EXERCISE_DB[n]) return EXERCISE_DB[n];
+  let best=null, bestLen=0;
+  for(const key in EXERCISE_DB){
+    if(n.includes(key) && key.length>bestLen){ best=EXERCISE_DB[key]; bestLen=key.length; }
+  }
+  return best;
+}
+function todayISO(){ return new Date().toLocaleDateString('sv-SE'); }
+function fmtDate(iso){
+  const d = new Date(iso+'T12:00:00');
+  return d.toLocaleDateString('pt-BR',{weekday:'short', day:'2-digit', month:'short'});
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+let entries = [];
+let tab = 'registrar';
+let filterDate = todayISO();
+let filterGroup = 'todos';
+
+// rascunho do formulário (sobrevive a troca de aba e a fechar/reabrir o artifact)
+let draft = { date: todayISO(), exerciseName: '', manualGroup: null, pendingSets: [] };
+
+function loadEntries(){
+  try{
+    const data = localStorage.getItem('treino-entries');
+    entries = data ? JSON.parse(data) : [];
+  }catch(e){ entries = []; }
+}
+function saveEntries(){
+  localStorage.setItem('treino-entries', JSON.stringify(entries));
+}
+function loadDraft(){
+  try{
+    const data = localStorage.getItem('treino-draft');
+    if(data){
+      const parsed = JSON.parse(data);
+      draft = Object.assign({ date: todayISO(), exerciseName:'', manualGroup:null, pendingSets:[] }, parsed);
+    }
+  }catch(e){ /* sem rascunho salvo ainda */ }
+}
+function saveDraft(){
+  localStorage.setItem('treino-draft', JSON.stringify(draft));
+}
+function clearDraft(){
+  draft = { date: todayISO(), exerciseName:'', manualGroup:null, pendingSets:[] };
+  saveDraft();
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <h1 class="brand">DIÁRIO DE TREINO</h1>
+    <div class="brand-sub">registre suas séries e acompanhe sua evolução</div>
+    <div class="tabs">
+      <div class="tab-btn ${tab==='registrar'?'active':''}" onclick="setTab('registrar')">REGISTRAR</div>
+      <div class="tab-btn ${tab==='dashboard'?'active':''}" onclick="setTab('dashboard')">DASHBOARD</div>
+    </div>
+    <div id="tab-content"></div>
+  `;
+  if(tab==='registrar') renderRegistrar(); else renderDashboard();
+}
+
+function setTab(t){ tab=t; render(); }
+
+// ---------- REGISTRAR ----------
+function renderRegistrar(){
+  const c = document.getElementById('tab-content');
+  const detected = detectGroup(draft.exerciseName);
+  const group = detected || draft.manualGroup;
+
+  c.innerHTML = `
+    <div class="card">
+      <label>Data</label>
+      <input type="date" id="ex-date" value="${draft.date}" onchange="onDraftDateChange(this.value)">
+    </div>
+    <div class="card">
+      <label>Exercício</label>
+      <input list="ex-list" id="ex-name" placeholder="ex: Supino inclinado" value="${draft.exerciseName||''}" oninput="onExerciseInput()">
+      <datalist id="ex-list">
+        ${Object.keys(EXERCISE_DB).map(k=>`<option value="${k}">`).join('')}
+      </datalist>
+      <div id="group-area"></div>
+    </div>
+
+    <div class="card">
+      <label>Adicionar série</label>
+      <div class="row">
+        <div>
+          <label>Repetições</label>
+          <input type="number" id="set-reps" min="0" placeholder="12">
+        </div>
+        <div>
+          <label>Carga (kg)</label>
+          <input type="number" id="set-weight" min="0" step="0.5" placeholder="40">
+        </div>
+        <div>
+          <label>Descanso (seg, opcional)</label>
+          <input type="number" id="set-time" min="0" placeholder="60">
+        </div>
+      </div>
+      <div style="height:10px"></div>
+      <button class="btn btn-add" onclick="addSet()">+ Adicionar série</button>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <label style="margin-bottom:0">Séries adicionadas (${draft.pendingSets.length})</label>
+        ${draft.pendingSets.length>0?'<button class="btn-small btn-ghost" style="width:auto" onclick="discardDraft()">Limpar</button>':''}
+      </div>
+      <div style="height:8px"></div>
+      <div id="set-list"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveWorkout()">Salvar treino</button>
+  `;
+
+  renderGroupArea(group);
+  renderSetList();
+}
+
+function onDraftDateChange(v){ draft.date = v; saveDraft(); }
+
+function onExerciseInput(){
+  draft.exerciseName = document.getElementById('ex-name').value;
+  const detected = detectGroup(draft.exerciseName);
+  if(detected) draft.manualGroup = null;
+  renderGroupArea(detected || draft.manualGroup);
+  saveDraft();
+}
+
+function renderGroupArea(group){
+  const area = document.getElementById('group-area');
+  if(!area) return;
+  if(group){
+    area.innerHTML = `
+      <div class="group-badge" style="background:${MUSCLE_COLORS[group]}22; color:${MUSCLE_COLORS[group]}">
+        <span class="dot" style="background:${MUSCLE_COLORS[group]}"></span>${MUSCLE_LABELS[group]}
+      </div>`;
+  } else {
+    area.innerHTML = `
+      <div style="margin-top:10px">
+        <label>Grupamento não identificado — selecione manualmente</label>
+        <select id="manual-group" onchange="onManualGroupChange(this.value)">
+          <option value="">Selecione…</option>
+          ${Object.keys(MUSCLE_LABELS).map(k=>`<option value="${k}">${MUSCLE_LABELS[k]}</option>`).join('')}
+        </select>
+      </div>`;
+  }
+}
+
+function onManualGroupChange(v){
+  draft.manualGroup = v;
+  renderGroupArea(v);
+  saveDraft();
+}
+
+function addSet(){
+  const name = document.getElementById('ex-name').value.trim();
+  const reps = document.getElementById('set-reps').value;
+  const weight = document.getElementById('set-weight').value;
+  const time = document.getElementById('set-time').value;
+  const group = detectGroup(name) || draft.manualGroup;
+  if(!name){ alert('Informe o nome do exercício.'); return; }
+  if(!group){ alert('Selecione o grupamento muscular.'); return; }
+  if(!reps || !weight){ alert('Informe repetições e carga.'); return; }
+
+  draft.pendingSets.push({
+    id: uid(), exercise:name, group,
+    reps:Number(reps), weight:Number(weight), restSeconds: time?Number(time):null
+  });
+  document.getElementById('set-reps').value='';
+  document.getElementById('set-weight').value='';
+  document.getElementById('set-time').value='';
+  renderSetList();
+  saveDraft();
+}
+
+function removeSet(id){
+  draft.pendingSets = draft.pendingSets.filter(s=>s.id!==id);
+  renderSetList();
+  saveDraft();
+}
+
+function discardDraft(){
+  if(draft.pendingSets.length>0 && !confirm('Descartar todas as séries ainda não salvas?')) return;
+  const keepDate = draft.date;
+  draft = { date: keepDate, exerciseName:'', manualGroup:null, pendingSets:[] };
+  saveDraft();
+  renderRegistrar();
+}
+
+function renderSetList(){
+  const el = document.getElementById('set-list');
+  if(!el) return;
+  const header = document.querySelector('#tab-content .card:nth-child(3) label');
+  if(header) header.textContent = `Séries adicionadas (${draft.pendingSets.length})`;
+  if(draft.pendingSets.length===0){ el.innerHTML = '<div class="empty">Nenhuma série adicionada ainda</div>'; return; }
+
+  // agrupa por exercício, na ordem em que foram adicionados
+  const order = [];
+  const byExercise = {};
+  draft.pendingSets.forEach(s=>{
+    if(!byExercise[s.exercise]){ byExercise[s.exercise] = []; order.push(s.exercise); }
+    byExercise[s.exercise].push(s);
+  });
+
+  el.innerHTML = order.map(name=>{
+    const sets = byExercise[name];
+    const color = MUSCLE_COLORS[sets[0].group];
+    return `
+      <div style="margin-bottom:12px">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px">
+          <span class="dot" style="background:${color}"></span>
+          <span style="font-weight:700; font-size:13px">${name}</span>
+        </div>
+        ${sets.map((s,i)=>`
+          <div class="set-row">
+            <div class="set-num">${i+1}</div>
+            <div class="set-data">
+              <div><span class="lbl">reps</span>${s.reps}</div>
+              <div><span class="lbl">kg</span>${s.weight}</div>
+              ${s.restSeconds?`<div><span class="lbl">descanso</span>${s.restSeconds}s</div>`:''}
+            </div>
+            <button class="del-btn" onclick="removeSet('${s.id}')">✕</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }).join('');
+}
+
+function saveWorkout(){
+  const date = draft.date || todayISO();
+  if(draft.pendingSets.length===0){ alert('Adicione pelo menos uma série.'); return; }
+
+  const newEntries = draft.pendingSets.map(s=>({
+    id: uid(), date, exercise:s.exercise, muscleGroup:s.group,
+    reps:s.reps, weight:s.weight, restSeconds:s.restSeconds, createdAt: Date.now()
+  }));
+  entries = entries.concat(newEntries);
+  saveEntries();
+
+  filterDate = date;
+  clearDraft();
+  tab = 'dashboard';
+  render();
+}
+
+// ---------- DASHBOARD ----------
+function renderDashboard(){
+  const c = document.getElementById('tab-content');
+  const allDates = [...new Set(entries.map(e=>e.date))].sort().reverse();
+
+  c.innerHTML = `
+    <div class="filter-row">
+      <div style="flex:1">
+        <label>Data</label>
+        <input type="date" id="filter-date" value="${filterDate}" onchange="onFilterDateChange(this.value)">
+      </div>
+      <div style="flex:1">
+        <label>Grupamento</label>
+        <select id="filter-group" onchange="filterGroup=this.value; renderDashboard()">
+          <option value="todos" ${filterGroup==='todos'?'selected':''}>Todos</option>
+          ${Object.keys(MUSCLE_LABELS).map(k=>`<option value="${k}" ${filterGroup===k?'selected':''}>${MUSCLE_LABELS[k]}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div id="day-summary"></div>
+    <div id="ex-groups"></div>
+    <div class="card">
+      <label>Histórico de dias</label>
+      <div id="history-list">
+        ${allDates.length===0?'<div class="empty">Nenhum treino registrado ainda</div>':
+          allDates.map(d=>{
+            return `<div class="day-list-item" onclick="filterDate='${d}'; document.getElementById('filter-date').value='${d}'; renderDashboard()">
+              <span class="day-date">${fmtDate(d)}</span>
+            </div>`;
+          }).join('')}
+      </div>
+    </div>
+  `;
+  renderDaySummary();
+}
+
+function onFilterDateChange(v){ filterDate = v; renderDashboard(); }
+
+function getFilteredEntries(){
+  return entries.filter(e=>e.date===filterDate && (filterGroup==='todos' || e.muscleGroup===filterGroup));
+}
+
+function renderDaySummary(){
+  const dayEntries = entries.filter(e=>e.date===filterDate && (filterGroup==='todos'||e.muscleGroup===filterGroup));
+  const totalSets = dayEntries.length;
+  const exNames = new Set(dayEntries.map(e=>e.exercise));
+
+  document.getElementById('day-summary').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><div class="num">${totalSets}</div><div class="lbl">Séries</div></div>
+      <div class="stat"><div class="num">${exNames.size}</div><div class="lbl">Exercícios</div></div>
+    </div>
+  `;
+
+  const byExercise = {};
+  dayEntries.forEach(e=>{
+    if(!byExercise[e.exercise]) byExercise[e.exercise] = { group:e.muscleGroup, sets:[] };
+    byExercise[e.exercise].sets.push(e);
+  });
+
+  const groupsEl = document.getElementById('ex-groups');
+  const names = Object.keys(byExercise);
+  if(names.length===0){
+    groupsEl.innerHTML = '<div class="card"><div class="empty">Nenhum exercício registrado para este filtro</div></div>';
+    return;
+  }
+  groupsEl.innerHTML = `<div class="card">` + names.map(name=>{
+    const data = byExercise[name];
+    const color = MUSCLE_COLORS[data.group];
+    return `
+      <div class="ex-card" style="border-color:${color}">
+        <div class="ex-title">
+          <div class="ex-name">${name} <span style="color:${color}; font-size:11px; font-weight:700; margin-left:6px">${MUSCLE_LABELS[data.group]}</span></div>
+        </div>
+        <div class="set-chip-row">
+          ${data.sets.map(s=>`
+            <div class="set-chip">
+              ${s.reps}×${s.weight}kg${s.restSeconds?` · ${s.restSeconds}s`:''}
+              <button onclick="deleteEntry('${s.id}')">✕</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('') + `</div>`;
+}
+
+function deleteEntry(id){
+  entries = entries.filter(e=>e.id!==id);
+  saveEntries();
+  renderDashboard();
+}
+
+// ---------- INIT ----------
+(function init(){
+  loadEntries();
+  loadDraft();
+  render();
+})();
+</script>
+</body>
+</html>
