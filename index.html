@@ -213,6 +213,33 @@
 
   .loading{ text-align:center; color:var(--text-muted); padding:40px 0; font-size:14px; }
 
+  .calendar-grid{
+    display:grid;
+    grid-template-columns:repeat(7, 1fr);
+    gap:6px;
+    margin-top:8px;
+  }
+  .calendar-day{
+    min-height:42px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:6px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    align-items:flex-start;
+    cursor:pointer;
+    color:var(--text);
+    transition:transform .15s ease, border-color .15s ease;
+    background:rgba(255,255,255,.03);
+  }
+  .calendar-day:hover{ transform:translateY(-1px); border-color:var(--accent); }
+  .calendar-day.active{ outline:2px solid var(--accent); outline-offset:-1px; }
+  .calendar-day.muted{ opacity:.45; }
+  .calendar-day .day-number{ font-size:12px; font-weight:700; }
+  .calendar-day .day-count{ font-size:9px; font-weight:700; padding:2px 5px; border-radius:999px; background:rgba(0,0,0,.2); }
+  .calendar-weekday{ text-align:center; color:var(--text-muted); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
+
   @media (max-width:480px){
     #app{ padding:max(14px, env(safe-area-inset-top)) 12px calc(20px + env(safe-area-inset-bottom)); }
     .card{ padding:13px; border-radius:16px; }
@@ -569,6 +596,9 @@ function renderDashboard(){
         </select>
       </div>
     </div>
+    <div class="card">
+      <div id="calendar"></div>
+    </div>
     <div id="day-summary"></div>
     <div id="ex-groups"></div>
     <div class="card">
@@ -583,10 +613,75 @@ function renderDashboard(){
       </div>
     </div>
   `;
+  renderCalendar();
   renderDaySummary();
 }
 
 function onFilterDateChange(v){ filterDate = v; renderDashboard(); }
+
+function setCalendarDate(date){ filterDate = date; document.getElementById('filter-date').value = date; renderDashboard(); }
+
+function getSeriesCountForDate(date){ return entries.filter(e=>e.date===date).length; }
+
+function getDayColor(count){
+  if(!count) return 'rgba(255,255,255,0.03)';
+  const intensity = Math.min(count, 8) / 8;
+  const hue = 18 + intensity * 120;
+  const lightness = 18 + intensity * 16;
+  return `linear-gradient(135deg, hsl(${hue} 70% ${lightness}%), hsl(${hue + 10} 70% ${Math.max(22, lightness - 4)}%))`;
+}
+
+function renderCalendar(){
+  const [year, month] = filterDate.split('-').map(Number);
+  const firstDay = new Date(year, month - 1, 1);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const startOffset = firstDay.getDay();
+  const prevMonthDays = new Date(year, month - 1, 0).getDate();
+  const weekdays = ['D','S','T','Q','Q','S','S'];
+  const cells = [];
+
+  for(let i = startOffset - 1; i >= 0; i--){
+    const day = prevMonthDays - i;
+    const date = `${year}-${String(month - 1 || 12).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    cells.push({ date, day, muted:true });
+  }
+
+  for(let day = 1; day <= daysInMonth; day++){
+    const date = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    cells.push({ date, day, muted:false });
+  }
+
+  while(cells.length % 7 !== 0){
+    const nextDay = cells.length % 7 + 1;
+    const nextMonth = month + 1 > 12 ? 1 : month + 1;
+    const nextYear = month + 1 > 12 ? year + 1 : year;
+    const date = `${nextYear}-${String(nextMonth).padStart(2,'0')}-${String(nextDay).padStart(2,'0')}`;
+    cells.push({ date, day: nextDay, muted:true });
+  }
+
+  const title = firstDay.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+  const calendarHtml = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
+      <label style="margin-bottom:0">Calendário</label>
+      <div style="font-size:13px; color:var(--text-muted)">${title}</div>
+    </div>
+    <div class="calendar-grid">
+      ${weekdays.map(w=>`<div class="calendar-weekday">${w}</div>`).join('')}
+      ${cells.map(cell=>{
+        const count = getSeriesCountForDate(cell.date);
+        const isActive = filterDate === cell.date;
+        return `
+          <button type="button" class="calendar-day ${cell.muted?'muted':''} ${isActive?'active':''}" onclick="setCalendarDate('${cell.date}')" style="background:${getDayColor(count)}; color:${count>0?'#fff':'var(--text-muted)'}">
+            <span class="day-number">${cell.day}</span>
+            ${count>0?`<span class="day-count">${count} série${count>1?'s':''}</span>`:''}
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  document.getElementById('calendar').innerHTML = calendarHtml;
+}
 
 function getFilteredEntries(){
   return entries.filter(e=>e.date===filterDate && (filterGroup==='todos' || e.muscleGroup===filterGroup));
@@ -598,9 +693,15 @@ function renderDaySummary(){
   const exNames = new Set(dayEntries.map(e=>e.exercise));
 
   document.getElementById('day-summary').innerHTML = `
-    <div class="stat-grid">
-      <div class="stat"><div class="num">${totalSets}</div><div class="lbl">Séries</div></div>
-      <div class="stat"><div class="num">${exNames.size}</div><div class="lbl">Exercícios</div></div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+        <label style="margin-bottom:0">Feed do dia</label>
+        <div style="font-size:12px; color:var(--text-muted)">${fmtDate(filterDate)}</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="num">${totalSets}</div><div class="lbl">Séries</div></div>
+        <div class="stat"><div class="num">${exNames.size}</div><div class="lbl">Exercícios</div></div>
+      </div>
     </div>
   `;
 
