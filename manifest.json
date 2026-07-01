@@ -1,10 +1,13 @@
 {
-  "name": "Meu App",
-  "short_name": "App",
-  "start_url": ".",
+  "name": "Diário de Treino",
+  "short_name": "Treino",
+  "description": "Aplicação de treino otimizada para uso mobile no iPhone",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "orientation": "portrait",
+  "background_color": "#121214",
+  "theme_color": "#121214",
   "icons": [
     {
       "src": "/icons/icon-192.png",
