@@ -989,7 +989,7 @@ function downloadShareImage(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   const padding = 80;
-  ctx.fillStyle = 'rgba(255,255,255,0.0)';
+  ctx.fillStyle = 'rgba(22,22,22,0.0)';
   ctx.fillRoundRect(padding - 16, 40, canvas.width - padding*2 + 32, 280, 36);
 
   ctx.fillStyle = '#f5f3ee';
@@ -1003,7 +1003,7 @@ function downloadShareImage(){
   const statWidth = (canvas.width - padding*2 - 40)/3;
   [['Séries', totalSets], ['Exercícios', exerciseCount], ['Grupamentos', groups.length]].forEach((item,i)=>{
     const x = padding + i*(statWidth + 20);
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillStyle = 'rgba(22,22,22,0.2)';
     ctx.fillRoundRect(x, statTop, statWidth, 210, 36);
     ctx.fillStyle = '#ff5a36';
     ctx.font = 'bold 96px Inter';
@@ -1018,15 +1018,15 @@ function downloadShareImage(){
   ctx.font = '800 36px Inter';
   ctx.fillText('Grupamentos', padding, badgeTop);
   let tagX = padding;
-  let tagY = badgeTop + 50;
-  const tagGapX = 16;
-  const tagGapY = 14;
-  const tagHeight = 46;
-  ctx.font = '700 24px Inter';
+  let tagY = badgeTop + 60;
+  const tagGapX = 18;
+  const tagGapY = 18;
+  const tagHeight = 64;
+  ctx.font = '800 28px Inter';
   groups.forEach((group,i) => {
     const tagText = `# ${MUSCLE_LABELS[group]}`;
     const textWidth = ctx.measureText(tagText).width;
-    const tagWidth = textWidth + 70;
+    const tagWidth = textWidth + 90;
     if(tagX + tagWidth > canvas.width - padding){
       tagX = padding;
       tagY += tagHeight + tagGapY;
@@ -1034,13 +1034,13 @@ function downloadShareImage(){
     const rawColor = MUSCLE_COLORS[group] || '#fff';
     const cssVarMatch = rawColor.match(/^var\((--[^\)]+)\)$/);
     const resolvedColor = cssVarMatch ? getComputedStyle(document.documentElement).getPropertyValue(cssVarMatch[1]).trim() || rawColor : rawColor;
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillStyle = 'rgba(22,22,22,0.22)';
     ctx.fillRoundRect(tagX, tagY, tagWidth, tagHeight, tagHeight/2);
     ctx.fillStyle = resolvedColor;
-    ctx.fillRoundRect(tagX + 10, tagY + 10, 30, 30, 15);
+    ctx.fillRoundRect(tagX + 12, tagY + 14, 32, 32, 16);
     ctx.fillStyle = '#fff';
-    ctx.font = '800 26px Inter';
-    ctx.fillText(tagText, tagX + 48, tagY + 33);
+    ctx.font = '800 32px Inter';
+    ctx.fillText(tagText, tagX + 54, tagY + 42);
     tagX += tagWidth + tagGapX;
   });
   if(groups.length === 0){
