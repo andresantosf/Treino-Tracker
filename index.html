@@ -532,6 +532,7 @@ var filterDate = todayISO();
 var filterGroup = 'todos';
 var timerIntervalId = null;
 var timerSeconds = 0;
+var timerStartedAt = null;
 var activeSet = null;
 var timerMode = 'idle'; // idle, work, rest
 var restTargetSetId = null;
@@ -551,6 +552,68 @@ function formatTime(seconds){
   return `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
 
+function saveTimerState(){
+  if(timerMode !== 'work' && timerMode !== 'rest'){
+    try{ localStorage.removeItem('treino-timer-state'); }catch(e){}
+    return;
+  }
+  try{
+    localStorage.setItem('treino-timer-state', JSON.stringify({
+      mode: timerMode,
+      startedAt: timerStartedAt,
+      seconds: timerSeconds,
+      activeSet: activeSet,
+      restTargetSetId: restTargetSetId
+    }));
+  }catch(e){}
+}
+
+function restoreTimerState(){
+  try{
+    const raw = localStorage.getItem('treino-timer-state');
+    if(!raw) return;
+    const state = JSON.parse(raw);
+    if(state.mode !== 'work' && state.mode !== 'rest') return;
+    timerMode = state.mode;
+    timerStartedAt = state.startedAt || null;
+    activeSet = state.activeSet || null;
+    restTargetSetId = state.restTargetSetId || null;
+    timerSeconds = Number(state.seconds) || 0;
+    if(timerStartedAt){
+      timerSeconds = Math.max(0, Math.floor((Date.now() - timerStartedAt)/1000));
+    }
+    if(timerMode === 'work' || timerMode === 'rest'){
+      if(timerIntervalId){ clearInterval(timerIntervalId); }
+      timerIntervalId = setInterval(()=>{
+        if(timerMode === 'work' || timerMode === 'rest'){
+          if(timerStartedAt){
+            timerSeconds = Math.max(0, Math.floor((Date.now() - timerStartedAt)/1000));
+          }
+          if(typeof renderRegistrar === 'function') renderRegistrar();
+        }
+      }, 1000);
+      saveTimerState();
+    }
+  }catch(e){
+    localStorage.removeItem('treino-timer-state');
+  }
+}
+
+function syncTimerState(){
+  if((timerMode !== 'work' && timerMode !== 'rest') || !timerStartedAt) return;
+  timerSeconds = Math.max(0, Math.floor((Date.now() - timerStartedAt)/1000));
+}
+
+function startTimerLoop(){
+  if(timerIntervalId) return;
+  timerIntervalId = setInterval(()=>{
+    if(timerMode === 'work' || timerMode === 'rest'){
+      syncTimerState();
+      if(typeof renderRegistrar === 'function') renderRegistrar();
+    }
+  }, 1000);
+}
+
 function startSetTimer(){
   const name = document.getElementById('ex-name').value.trim();
   const weight = document.getElementById('set-weight').value;
@@ -562,11 +625,9 @@ function startSetTimer(){
   activeSet = { exercise:name, group, weight:Number(weight), startAt: Date.now() };
   timerMode = 'work';
   timerSeconds = 0;
-  lastWorkSeconds = 0;
-  timerIntervalId = setInterval(()=>{
-    timerSeconds += 1;
-    renderRegistrar();
-  }, 1000);
+  timerStartedAt = Date.now();
+  saveTimerState();
+  startTimerLoop();
   renderRegistrar();
 }
 
@@ -576,6 +637,8 @@ function enterRestMode(){
     clearInterval(timerIntervalId);
     timerIntervalId = null;
   }
+  timerStartedAt = null;
+  saveTimerState();
   repsModalMode = 'rest';
   repsModalOpen = true;
   render();
@@ -587,6 +650,8 @@ function finishSet(){
     clearInterval(timerIntervalId);
     timerIntervalId = null;
   }
+  timerStartedAt = null;
+  saveTimerState();
   repsModalMode = 'save';
   repsModalOpen = true;
   render();
@@ -614,10 +679,9 @@ function submitRepsModal(){
     timerMode = 'rest';
     restTargetSetId = set.id;
     timerSeconds = 0;
-    timerIntervalId = setInterval(()=>{
-      timerSeconds += 1;
-      renderRegistrar();
-    }, 1000);
+    timerStartedAt = Date.now();
+    saveTimerState();
+    startTimerLoop();
     saveDraft();
     renderSetList();
     render();
@@ -626,6 +690,8 @@ function submitRepsModal(){
 
   timerMode = 'idle';
   timerSeconds = 0;
+  timerStartedAt = null;
+  saveTimerState();
   saveDraft();
   renderSetList();
   render();
@@ -715,6 +781,8 @@ function stopRest(){
   }
   timerMode = 'idle';
   timerSeconds = 0;
+  timerStartedAt = null;
+  saveTimerState();
   renderRegistrar();
 }
 
@@ -722,12 +790,14 @@ function cancelSet(){
   if(timerIntervalId){
     clearInterval(timerIntervalId);
     timerIntervalId = null;
-    activeSet = null;
-    restTargetSetId = null;
-    timerMode = 'idle';
-    timerSeconds = 0;
-    renderRegistrar();
   }
+  activeSet = null;
+  restTargetSetId = null;
+  timerMode = 'idle';
+  timerSeconds = 0;
+  timerStartedAt = null;
+  saveTimerState();
+  renderRegistrar();
 }
 
 function loadEntries(){
@@ -804,6 +874,7 @@ function setTab(t){ tab=t; render(); }
 
 // ---------- REGISTRAR ----------
 function renderRegistrar(){
+  syncTimerState();
   const c = document.getElementById('tab-content');
   const detected = detectGroup(draft.exerciseName);
   const group = detected || draft.manualGroup;
@@ -1370,6 +1441,19 @@ if (!CanvasRenderingContext2D.prototype.fillRoundRect) {
 (function init(){
   loadEntries();
   loadDraft();
+  restoreTimerState();
+  window.addEventListener('focus', ()=>{
+    syncTimerState();
+    saveTimerState();
+    if(typeof renderRegistrar === 'function') renderRegistrar();
+  });
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible'){
+      syncTimerState();
+      saveTimerState();
+      if(typeof renderRegistrar === 'function') renderRegistrar();
+    }
+  });
   render();
 })();
 </script>

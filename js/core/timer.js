@@ -2,9 +2,68 @@
   // Timer state lives on window for compatibility
   window.timerIntervalId = null;
   window.timerSeconds = 0;
+  window.timerStartedAt = null;
   window.activeSet = null;
   window.timerMode = 'idle';
   window.restTargetSetId = null;
+
+  function saveTimerState(){
+    if(window.timerMode !== 'work' && window.timerMode !== 'rest'){
+      try{ localStorage.removeItem('treino-timer-state'); }catch(e){}
+      return;
+    }
+    try{
+      localStorage.setItem('treino-timer-state', JSON.stringify({
+        mode: window.timerMode,
+        startedAt: window.timerStartedAt,
+        seconds: window.timerSeconds,
+        activeSet: window.activeSet,
+        restTargetSetId: window.restTargetSetId
+      }));
+    }catch(e){}
+  }
+
+  function restoreTimerState(){
+    try{
+      const raw = localStorage.getItem('treino-timer-state');
+      if(!raw) return;
+      const state = JSON.parse(raw);
+      if(state.mode !== 'work' && state.mode !== 'rest') return;
+      window.timerMode = state.mode;
+      window.timerStartedAt = state.startedAt || null;
+      window.activeSet = state.activeSet || null;
+      window.restTargetSetId = state.restTargetSetId || null;
+      window.timerSeconds = Number(state.seconds) || 0;
+      if(window.timerStartedAt){
+        window.timerSeconds = Math.max(0, Math.floor((Date.now() - window.timerStartedAt)/1000));
+      }
+      if(window.timerIntervalId){ clearInterval(window.timerIntervalId); }
+      window.timerIntervalId = setInterval(()=>{
+        if(window.timerMode === 'work' || window.timerMode === 'rest'){
+          if(window.timerStartedAt){
+            window.timerSeconds = Math.max(0, Math.floor((Date.now() - window.timerStartedAt)/1000));
+          }
+          if(typeof renderRegistrar === 'function') renderRegistrar();
+        }
+      }, 1000);
+      saveTimerState();
+    }catch(e){ localStorage.removeItem('treino-timer-state'); }
+  }
+
+  function syncTimerState(){
+    if((window.timerMode !== 'work' && window.timerMode !== 'rest') || !window.timerStartedAt) return;
+    window.timerSeconds = Math.max(0, Math.floor((Date.now() - window.timerStartedAt)/1000));
+  }
+
+  function startTimerLoop(){
+    if(window.timerIntervalId) return;
+    window.timerIntervalId = setInterval(()=>{
+      if(window.timerMode === 'work' || window.timerMode === 'rest'){
+        syncTimerState();
+        if(typeof renderRegistrar === 'function') renderRegistrar();
+      }
+    }, 1000);
+  }
 
   function startSetTimer(){
     const name = document.getElementById('ex-name').value.trim();
@@ -17,13 +76,17 @@
     window.activeSet = { exercise:name, group, weight:Number(weight), startAt: Date.now() };
     window.timerMode = 'work';
     window.timerSeconds = 0;
-    window.timerIntervalId = setInterval(()=>{ window.timerSeconds += 1; renderRegistrar(); }, 1000);
+    window.timerStartedAt = Date.now();
+    saveTimerState();
+    startTimerLoop();
     renderRegistrar();
   }
 
   function enterRestMode(){
     if(window.timerMode !== 'work' || !window.activeSet) return;
     if(window.timerIntervalId){ clearInterval(window.timerIntervalId); window.timerIntervalId = null; }
+    window.timerStartedAt = null;
+    saveTimerState();
     window.repsModalMode = 'rest';
     window.repsModalOpen = true;
     render();
@@ -32,6 +95,8 @@
   function finishSet(){
     if(window.timerMode !== 'work' || !window.activeSet){ alert('Inicie o timer antes de finalizar.'); return; }
     if(window.timerIntervalId){ clearInterval(window.timerIntervalId); window.timerIntervalId = null; }
+    window.timerStartedAt = null;
+    saveTimerState();
     window.repsModalMode = 'save';
     window.repsModalOpen = true;
     render();
@@ -56,7 +121,9 @@
       window.timerMode = 'rest';
       window.restTargetSetId = set.id;
       window.timerSeconds = 0;
-      window.timerIntervalId = setInterval(()=>{ window.timerSeconds += 1; renderRegistrar(); }, 1000);
+      window.timerStartedAt = Date.now();
+      saveTimerState();
+      startTimerLoop();
       saveDraft();
       renderSetList();
       render();
@@ -65,6 +132,8 @@
 
     window.timerMode = 'idle';
     window.timerSeconds = 0;
+    window.timerStartedAt = null;
+    saveTimerState();
     saveDraft();
     renderSetList();
     render();
@@ -78,11 +147,20 @@
     if(window.restTargetSetId){ const set = window.draft.pendingSets.find(s => s.id === window.restTargetSetId); if(set){ set.restSeconds = window.timerSeconds; } window.restTargetSetId = null; saveDraft(); renderSetList(); }
     window.timerMode = 'idle';
     window.timerSeconds = 0;
+    window.timerStartedAt = null;
+    saveTimerState();
     renderRegistrar();
   }
 
   function cancelSet(){
-    if(window.timerIntervalId){ clearInterval(window.timerIntervalId); window.timerIntervalId = null; window.activeSet = null; window.restTargetSetId = null; window.timerMode = 'idle'; window.timerSeconds = 0; renderRegistrar(); }
+    if(window.timerIntervalId){ clearInterval(window.timerIntervalId); window.timerIntervalId = null; }
+    window.activeSet = null;
+    window.restTargetSetId = null;
+    window.timerMode = 'idle';
+    window.timerSeconds = 0;
+    window.timerStartedAt = null;
+    saveTimerState();
+    renderRegistrar();
   }
 
   // Long-press helpers
