@@ -510,24 +510,24 @@ function fmtDate(iso){
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
-let entries = [];
-let tab = 'registrar';
-let filterDate = todayISO();
-let filterGroup = 'todos';
-let timerIntervalId = null;
-let timerSeconds = 0;
-let activeSet = null;
-let timerMode = 'idle'; // idle, work, rest
-let restTargetSetId = null;
-let repsModalOpen = false;
-let repsModalMode = 'save';
-let editModalOpen = false;
-let editModalSource = 'draft';
-let editModalId = null;
-let longPressTimer = null;
+var entries = [];
+var tab = 'registrar';
+var filterDate = todayISO();
+var filterGroup = 'todos';
+var timerIntervalId = null;
+var timerSeconds = 0;
+var activeSet = null;
+var timerMode = 'idle'; // idle, work, rest
+var restTargetSetId = null;
+var repsModalOpen = false;
+var repsModalMode = 'save';
+var editModalOpen = false;
+var editModalSource = 'draft';
+var editModalId = null;
+var longPressTimer = null;
 
 // rascunho do formulário (sobrevive a troca de aba e a fechar/reabrir o artifact)
-let draft = { date: todayISO(), exerciseName: '', manualGroup: null, pendingSets: [] };
+var draft = { date: todayISO(), exerciseName: '', manualGroup: null, pendingSets: [] };
 
 function formatTime(seconds){
   const min = Math.floor(seconds/60);
@@ -1226,8 +1226,20 @@ function renderShareCard(totalSets, exerciseCount, groups){
       </div>
     </div>
     <canvas id="share-canvas" width="1200" height="1200" style="display:none"></canvas>
-  `;
-}
+    `;
+  }
+
+  // Load external scripts for share templates and drawing when running as files
+  // These scripts override the inline downloadShareImage() with a configurable implementation.
+  setTimeout(()=>{
+  const base = location.pathname.replace(/\/[^/]*$/, '');
+  // core modules first
+  const core = ['/js/core/utils.js','/js/core/storage.js','/js/core/timer.js'];
+  core.forEach(p=>{ const s=document.createElement('script'); s.src=base+p; document.body.appendChild(s); });
+  // then templates, drawing and screen modules
+  const list = ['/js/share-templates.js','/js/drawShare.js','/js/screens/registrar.js','/js/screens/dashboard.js','/js/screens/share-card.js'];
+  list.forEach(p=>{ const s=document.createElement('script'); s.src=base+p; document.body.appendChild(s); });
+  }, 50);
 
 function downloadShareImage(){
   const canvas = document.getElementById('share-canvas');
