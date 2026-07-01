@@ -59,7 +59,7 @@
     font-family:'Bebas Neue',sans-serif;
     letter-spacing:2px;
     font-size:clamp(28px, 8vw, 38px);
-    margin:4px 0 2px;
+    margin:12px 0 2px;
     line-height:1;
   }
   .brand-sub{ color:var(--text-muted); font-size:14px; margin:0 0 4px; line-height:1.4; }
@@ -115,9 +115,12 @@
     font-family:'Inter',sans-serif;
   }
   input:focus, select:focus{ outline:none; border-color:var(--accent); }
+  input[type="date"]{ min-width:0; width:100%; max-width:100%; }
   .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .row > div{ min-width:0; }
   .row > div:nth-child(3){ grid-column:1 / -1; }
+  .filter-row > div{ min-width:0; }
+  .filter-row input, .filter-row select{ width:100%; max-width:100%; }
 
   .group-badge{
     display:inline-flex; align-items:center; gap:6px; padding:7px 12px;
@@ -215,15 +218,15 @@
 
   .calendar-grid{
     display:grid;
-    grid-template-columns:repeat(7, 1fr);
+    grid-template-columns:repeat(7, minmax(0, 1fr));
     gap:6px;
     margin-top:8px;
   }
   .calendar-day{
-    min-height:42px;
+    aspect-ratio:1 / 1;
     border:1px solid var(--border);
-    border-radius:10px;
-    padding:6px;
+    border-radius:12px;
+    padding:4px;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
@@ -237,7 +240,7 @@
   .calendar-day.active{ outline:2px solid var(--accent); outline-offset:-1px; }
   .calendar-day.muted{ opacity:.45; }
   .calendar-day .day-number{ font-size:12px; font-weight:700; }
-  .calendar-day .day-count{ font-size:9px; font-weight:700; padding:2px 5px; border-radius:999px; background:rgba(0,0,0,.2); }
+  .calendar-day .day-count{ font-size:8px; font-weight:700; padding:2px 4px; border-radius:999px; background:rgba(0,0,0,.2); line-height:1; }
   .calendar-weekday{ text-align:center; color:var(--text-muted); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
 
   @media (max-width:480px){
@@ -246,6 +249,8 @@
     .row, .filter-row{ grid-template-columns:1fr; }
     .stat-grid{ grid-template-columns:1fr; }
     .brand{ font-size:30px; }
+    input, select{ font-size:15px; }
+    input[type="date"]{ padding-right:8px; }
   }
 </style>
 </head>
@@ -642,7 +647,9 @@ function renderCalendar(){
 
   for(let i = startOffset - 1; i >= 0; i--){
     const day = prevMonthDays - i;
-    const date = `${year}-${String(month - 1 || 12).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const prevMonth = month - 1 <= 0 ? 12 : month - 1;
+    const prevYear = month - 1 <= 0 ? year - 1 : year;
+    const date = `${prevYear}-${String(prevMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     cells.push({ date, day, muted:true });
   }
 
@@ -651,12 +658,13 @@ function renderCalendar(){
     cells.push({ date, day, muted:false });
   }
 
-  while(cells.length % 7 !== 0){
-    const nextDay = cells.length % 7 + 1;
+  let nextDay = 1;
+  while(cells.length < 42){
     const nextMonth = month + 1 > 12 ? 1 : month + 1;
     const nextYear = month + 1 > 12 ? year + 1 : year;
     const date = `${nextYear}-${String(nextMonth).padStart(2,'0')}-${String(nextDay).padStart(2,'0')}`;
     cells.push({ date, day: nextDay, muted:true });
+    nextDay += 1;
   }
 
   const title = firstDay.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
